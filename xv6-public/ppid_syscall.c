@@ -8,7 +8,14 @@
 #include "spinlock.h"
 
 int
-sys_getppid(void)
+getppid(void)
 {
 	return myproc()->parent->pid;
+}
+
+//Wrapper of getppid
+int
+sys_getppid(void)
+{
+	return getppid();
 }
