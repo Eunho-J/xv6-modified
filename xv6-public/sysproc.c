@@ -89,3 +89,20 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int
+sys_yield(void)
+{
+	uint ticks0;
+	acquire(&tickslock);
+	ticks0=ticks;
+	while(ticks-ticks0 == 0){
+		if(myproc()->killed){
+			release(&tickslock);
+			return -1;
+		}
+		yield2(&tickslock);
+	}
+	release(&tickslock);
+	return 0;
+}

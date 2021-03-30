@@ -391,6 +391,23 @@ yield(void)
   release(&ptable.lock);
 }
 
+void
+yield2(struct spinlock *lk)
+{
+  if(lk != &ptable.lock){
+    acquire(&ptable.lock);
+	release(lk);
+  }
+  myproc()->state = RUNNABLE;
+  sched();
+  if(lk != &ptable.lock){
+    release(&ptable.lock);
+    acquire(lk);
+  }
+}
+ 
+
+
 // A fork child's very first scheduling by scheduler()
 // will swtch here.  "Return" to user space.
 void
