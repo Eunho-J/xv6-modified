@@ -392,14 +392,22 @@ yield(void)
 }
 
 void
-yield2(struct spinlock *lk)
+yield2(void *chan, struct spinlock *lk)
 {
+	struct proc *p = myproc();
+
   if(lk != &ptable.lock){
     acquire(&ptable.lock);
 	release(lk);
   }
-  myproc()->state = RUNNABLE;
+
+  p->chan = chan;
+  p->state = RUNNABLE;
+
   sched();
+
+  p->chan = 0;
+
   if(lk != &ptable.lock){
     release(&ptable.lock);
     acquire(lk);

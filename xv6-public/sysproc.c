@@ -93,16 +93,20 @@ sys_uptime(void)
 int
 sys_yield(void)
 {
-	uint ticks0;
 	acquire(&tickslock);
-	ticks0=ticks;
-	while(ticks-ticks0 == 0){
-		if(myproc()->killed){
-			release(&tickslock);
-			return -1;
-		}
-		yield2(&tickslock);
-	}
+	sleep(&ticks, &tickslock);
 	release(&tickslock);
+
+	//uint ticks0;
+	//acquire(&tickslock);
+	//ticks0=ticks;
+	//while(ticks-ticks0 == 0){
+	//	if(myproc()->killed){
+	//		release(&tickslock);
+	//		return -1;
+	//	}
+	//	yield2(&ticks, &tickslock);
+	//}
+	//release(&tickslock);
 	return 0;
 }
