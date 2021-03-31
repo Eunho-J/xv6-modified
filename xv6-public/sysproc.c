@@ -93,9 +93,7 @@ sys_uptime(void)
 int
 sys_yield(void)
 {
-	acquire(&tickslock);
-	sleep(&ticks, &tickslock);
-	release(&tickslock);
+	yield();
 
 	//uint ticks0;
 	//acquire(&tickslock);

@@ -5,16 +5,15 @@
 int
 main(int argc, char *argv[])
 {
-	int childPid = fork();
-
 	int loopCount = 0;
+	int childPid = fork();
 
 	if(childPid == 0) //Child process
 	{
 		while(loopCount++ < 100)
 		{
-			printf(1,"Child\n");
 			yield();
+			printf(1,"Child %d %d\n", uptime(), loopCount);
 		}
 		exit();
 	} 
@@ -22,8 +21,8 @@ main(int argc, char *argv[])
 	{
 		while(loopCount++ < 100)
 		{
-			printf(1,"Parent\n");
 			yield();
+			printf(1,"Parent %d %d\n", uptime(), loopCount);
 		}
 		wait();
 	} else
