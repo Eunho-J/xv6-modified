@@ -1,13 +1,13 @@
-#define QUEUE_MLFQ	0
+#define QUEUE_MLFQ		0
 #define QUEUE_STRIDE	1
 
-typedef struct node {
+struct q_node {
 	int procIndex;
-	unsigned int distance;
-	struct node* next;
-} Node;
+	uint distance;
+	struct q_node* next;
+};
 
-typedef struct header {
+struct q_header {
 	int type;
-	struct node* next;
-} Header;
+	struct q_node* next;
+};

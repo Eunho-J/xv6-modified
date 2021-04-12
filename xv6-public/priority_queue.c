@@ -3,36 +3,36 @@
 #include "proc.h"
 #include "priority_queue.h"
 
-Node* queue_newNode(int index, unsigned int d)
+struct q_node* queue_newNode(int index, uint d)
 {
-	Node* temp = (Node*)malloc(sizeof(Node));
+	struct q_node* temp;
 	temp->procIndex = index;
 	temp->distance = d;
-	temp->next = NULL;
+	temp->next = 0;
 	return temp;
 }
 
-Header* queue_newHeader(int t)
+struct q_header* queue_newHeader(int t)
 {
-	Header* temp = (Header*)malloc(sizeof(Header));
+	struct q_header* temp;
 	temp->type = t;
-	temp->next = NULL;
+	temp->next = 0;
 	return temp;
 }
 
-int queue_push(Header** header, Node** node)
+int queue_push(struct q_header** header, struct q_node** node)
 {
 	//printf("push called\n");
-	if((*header)->next == NULL) {
+	if((*header)->next == 0) {
 		(*node)->next = (*header)->next;
 		(*header)->next = (*node);
 	} else if((*header)->type == QUEUE_STRIDE){
-		Node* temp = (*header)->next;
+		struct q_node* temp = (*header)->next;
 		if(temp->distance > (*node)->distance) {
 			(*node)->next = (*header)->next;
 			(*header)->next = (*node);
 		}else {
-			while( temp->next != NULL ) {
+			while( temp->next != 0 ) {
 				if(temp->next->distance <= (*node)->distance) {
 					temp = temp->next;
 				} else break;
@@ -41,8 +41,8 @@ int queue_push(Header** header, Node** node)
 			temp->next = (*node);
 		}
 	} else if((*header)->type == QUEUE_MLFQ){
-		Node* temp = (*header)->next;
-		while( temp->next != NULL ) {
+		struct q_node* temp = (*header)->next;
+		while( temp->next != 0 ) {
 			temp = temp->next;		
 		}
 		(*node)->next = temp->next;
@@ -51,32 +51,32 @@ int queue_push(Header** header, Node** node)
 	return 0;
 }
 
-Node* queue_pop(Header** header)
+struct q_node* queue_pop(struct q_header** header)
 {
 	//printf("pop called\n");
-	Node* temp = (*header)->next;
+	struct q_node* temp = (*header)->next;
 	//printf("pop called 2\n");
-	if((*header)->next != NULL){ 
+	if((*header)->next != 0){ 
 		(*header)->next = (*header)->next->next;
 		//printf("pop called 3\n");
 	} //else printf("pop called 4\n");
 	return temp;
 }
 
-Node* queue_popall(Header** header)
+struct q_node* queue_popall(struct q_header** header)
 {
-	Node* temp = (*header)->next;
-	(*header)->next = NULL;
+	struct q_node* temp = (*header)->next;
+	(*header)->next = 0;
 	return temp;
 }
 
-int queue_pushall(Header** header, Node** frontNode)
+int queue_pushall(struct q_header** header, struct q_node** frontNode)
 {
-	Node* temp = (*header)->next;
-	if(temp == NULL){
+	struct q_node* temp = (*header)->next;
+	if(temp == 0){
 		(*header)->next = (*frontNode);
 	} else {
-		while(temp->next != NULL){
+		while(temp->next != 0){
 			temp = temp->next;
 		}
 		temp->next = (*frontNode);
@@ -84,8 +84,8 @@ int queue_pushall(Header** header, Node** frontNode)
 	return 1;
 }
 
-int queue_isEmpty(Header** header)
+int queue_isEmpty(struct q_header** header)
 {
 	//printf("isEmpty called\n");
-	return (*header)->next == NULL;
+	return (*header)->next == 0;
 }

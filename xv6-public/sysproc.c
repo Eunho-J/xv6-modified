@@ -94,17 +94,5 @@ int
 sys_yield(void)
 {
 	yield();
-
-	//uint ticks0;
-	//acquire(&tickslock);
-	//ticks0=ticks;
-	//while(ticks-ticks0 == 0){
-	//	if(myproc()->killed){
-	//		release(&tickslock);
-	//		return -1;
-	//	}
-	//	yield2(&ticks, &tickslock);
-	//}
-	//release(&tickslock);
 	return 0;
 }
