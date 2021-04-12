@@ -1,9 +1,9 @@
-#define QUEUE_MLFQ			0
-#define QUEUE_STRIDE		1
+#define QUEUE_MLFQ	0
+#define QUEUE_STRIDE	1
 
 typedef struct node {
-	int procIndex; //process index in ptable
-	uint priority;
+	int procIndex;
+	unsigned int distance;
 	struct node* next;
 } Node;
 
