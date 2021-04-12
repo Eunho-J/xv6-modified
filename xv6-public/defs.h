@@ -163,6 +163,7 @@ void            timerinit(void);
 // trap.c
 void            idtinit(void);
 extern uint     ticks;
+extern uint			MLFQ_tickCount;
 void            tvinit(void);
 extern struct spinlock tickslock;
 
@@ -188,9 +189,12 @@ int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 
 //prac_syscall.c
-int				printk_str(char*);
+int							printk_str(char*);
 //ppid_syscall.c
-int				getppid(void);
+int							getppid(void);
+
+//priority_queue.c
+
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
