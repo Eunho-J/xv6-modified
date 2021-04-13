@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "priority_queue.h"
 
 struct {
   struct spinlock lock;
@@ -13,6 +14,16 @@ struct {
 } ptable;
 
 static struct proc *initproc;
+struct q_header* mlfq0 = 0;
+struct q_header* mlfq1;
+struct q_header* mlfq2;
+struct q_header* stride;
+struct q_node* mlfqSched;
+int sysyield_called = 0;
+int remaining_tickets = 80;
+
+uint mlfq_tickCount = 0;
+
 
 int nextpid = 1;
 extern void forkret(void);
@@ -76,6 +87,8 @@ allocproc(void)
   struct proc *p;
   char *sp;
 
+  // cprintf("!!!!!!!!!!!allocproc called!!!!!!!\n");
+
   acquire(&ptable.lock);
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
@@ -112,6 +125,34 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
 
+  // for MLFQ & Stride, init values are 0
+  p->turnCount = 0;
+  p->tickets = 0;
+  p->tickCount = 0;
+  p->p_node = 0;
+  // create q_node of process & push to mlfq0, which is initial one.
+  struct q_node* temp = queue_newNode(p, !IS_MLFQSCHED);
+
+  p->p_node = temp;
+  queue_push(&mlfq0, &temp);
+
+  
+  // cprintf("process added to mlfq0: pid %d\n", p->pid);
+  // struct q_node* temp2 = mlfq0->next;
+  // if(temp2 != 0)
+  // { 
+  //   int i = 0;
+  //   cprintf("%d 'th pid %d\n", i++, temp2->p->pid);
+  //   while (temp2->next != 0)
+  //   {
+  //     cprintf("%d 'th pid %d\n", i++, temp2->next->p->pid);
+  //     temp2 = temp2->next;
+  //   }
+  // }
+
+  //cprintf("state: %d\n", p->state);
+  // Q. priority boost needed..? nope.
+
   return p;
 }
 
@@ -122,6 +163,14 @@ userinit(void)
 {
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
+
+  if(mlfq0 == 0){
+    // init scheduling queues
+    mlfq0 = queue_newHeader(QUEUE_MLFQ);
+    mlfq1 = queue_newHeader(QUEUE_MLFQ);
+    mlfq2 = queue_newHeader(QUEUE_MLFQ);
+    stride = queue_newHeader(QUEUE_STRIDE);
+  }
 
   p = allocproc();
   
@@ -142,10 +191,6 @@ userinit(void)
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
 
-  // for MLFQ & Stride, init values are 0
-  p->turnCount = 0;
-  p->tickets = 0;
-  p->tickCount = 0;
 
   // this assignment to p->state lets other cores
   // run this process. the acquire forces the above
@@ -153,7 +198,8 @@ userinit(void)
   // because the assignment might not be atomic.
   acquire(&ptable.lock);
 
-  p->state = RUNNABLE;
+  //cprintf("set RUNABBLE!!!\n");
+  p->state = RUNNABLE;  
 
   release(&ptable.lock);
 }
@@ -191,11 +237,13 @@ fork(void)
 
   // Allocate process.
   if((np = allocproc()) == 0){
+    cprintf("fork failed\n");
     return -1;
   }
 
   // Copy process state from proc.
   if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
+    cprintf("fork failed\n");
     kfree(np->kstack);
     np->kstack = 0;
     np->state = UNUSED;
@@ -316,6 +364,43 @@ wait(void)
   }
 }
 
+// boosts every priority in mlfq scheduler.
+void
+priority_boost(void)
+{
+  struct q_node* temp = queue_popall(&mlfq1);
+  queue_pushall(&mlfq0, &temp);
+  temp = queue_popall(&mlfq2);
+  queue_pushall(&mlfq1, &temp);
+  mlfq_tickCount = 0;
+
+  // reset all turnCount in mlfq0 except runnig process
+  temp = mlfq0->next;
+  if( temp != 0 ){
+    while(temp->next != 0) {
+      if(temp->p->state != RUNNING)
+        temp->p->turnCount = 0;
+      temp = temp->next;
+    }
+  }
+  // reset all turnCount in mlfq0 except runnig process
+  temp = mlfq1->next;
+  if( temp != 0 ){
+    while(temp->next != 0) {
+      if(temp->p->state != RUNNING)
+        temp->p->turnCount = 5;
+      temp = temp->next;
+    }
+  }
+  return;
+}
+
+int
+set_cpu_share(int share)
+{
+  return 1;
+}
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -327,16 +412,171 @@ wait(void)
 void
 scheduler(void)
 {
+  cprintf("hello in scheduler 1\n");
   struct proc *p;
+  // struct q_node* stride_selected;
+  // struct q_node* mlfq_selected = 0;
   struct cpu *c = mycpu();
   c->proc = 0;
+
+  cprintf("hello in scheduler 2\n");
+  // push mlfqSched into stide queue
+  // this is for considering mlfq as a process in Stride with 20 shares.
+  // mlfqSched = queue_newNode(0, IS_MLFQSCHED);
+  // queue_push(&stride, &mlfqSched);
   
+  // loop never ends
   for(;;){
+    
     // Enable interrupts on this processor.
     sti();
-
+    
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+    // //cprintf("hello in scheduler 4\n");
+  
+    // stride_selected = queue_pop(&stride);
+    // if(stride_selected->isMLFQ)
+    // { // mlfq scheduling selected in stride.
+
+    
+    //   uint temp = mlfq_tickCount;
+    //   while (mlfq_tickCount - temp < 4)                  //mlfq runs for 4 ticks only(stride slice is 4)
+    //   { 
+        
+    //     if(mlfq_selected == 0)                          // process turn is over
+    //     {
+    //       if(!queue_isEmpty(&mlfq0)) {                  // case: mlfq0 has nodes
+    //         mlfq_selected = queue_pop(&mlfq0);
+    //       } else if(!queue_isEmpty(&mlfq1)) {           // case: mlfq0 has no nodes but mlfq1 has.
+    //         mlfq_selected = queue_pop(&mlfq1);
+    //       } 
+    //       else if(!queue_isEmpty(&mlfq2)) {             // case: only mlfq2 has nodes.
+    //         mlfq_selected = queue_pop(&mlfq2);
+    //       } 
+    //       else { // case: mlfq has no process
+    //         break;
+    //       }
+    //     } 
+
+    //     //cprintf("test 1\n");
+    //     p = mlfq_selected->p;
+
+    //     if (p->state != RUNNABLE){
+    //       cprintf("process name: %s, pid: %d, state: %d\n", p->name, p->pid, p->state);
+    //       mlfq_selected = 0;
+    //       continue;
+    //     }
+        
+    //     //cprintf("test runnable yes!!!!!\n");
+    //     // cprintf("test 2\n");
+    //     p->tickCount++;
+    //     // cprintf("test 3\n");
+    //     mlfq_tickCount++;
+    //     // cprintf("test 4\n");
+
+        
+    //     c->proc = p;
+    //     switchuvm(p);
+    //     p->state = RUNNING;
+    //     swtch(&(c->scheduler), p->context);
+    //     switchkvm();
+
+    //     if (p->state == RUNNABLE || p->state == SLEEPING)  //still have something to do
+    //     {
+    //       if (p->tickets == 0) //still in mlfq
+    //       {
+    //         if (p->turnCount < 5)               // queue 0
+    //         {
+    //           if(p->tickCount >= 1)             // turnover
+    //           {
+    //             queue_push(&mlfq0, &mlfq_selected);
+    //             mlfq_selected = 0;
+    //             p->tickCount = 0;
+    //           }
+    //         }
+    //         else if (p->turnCount < 10)         // queue 1
+    //         {
+    //           if(p->tickCount >= 2)             // turnover
+    //           {
+    //             queue_push(&mlfq1, &mlfq_selected);
+    //             mlfq_selected = 0;
+    //             p->tickCount = 0;
+    //           }
+    //         }
+    //         else                                // queue 2
+    //         {
+    //           if(p->tickCount >= 4)             // turnover
+    //           {
+    //             queue_push(&mlfq2, &mlfq_selected);
+    //             mlfq_selected = 0;
+    //             p->tickCount = 0;
+    //           }
+    //         }
+    //       }
+    //       else                  //moved to stride
+    //       {
+    //         queue_push(&stride, &mlfq_selected);
+    //         mlfq_selected = 0;
+    //         p->tickCount = 0;
+    //       }
+    //     }
+    //     else
+    //     {
+    //       mlfq_selected = 0;
+    //       p->tickCount = 0;
+    //       p->turnCount = 0;
+    //     }
+        
+    //     c->proc = 0;
+        
+    //     // release(&ptable.lock);
+    //   } // while loop end
+
+    //   cprintf("test while end\n");
+
+    //   //mlfq has 20 shares in total 100 -> distance of 1 step is 5.
+    //   mlfqSched->distance = mlfqSched->distance + 5; 
+    //   queue_push(&stride, &mlfqSched);
+
+    // }
+    // else
+    // { // other process selected in Stride scheduling
+      
+
+
+
+
+
+    //   p = stride_selected->p;
+    //   p->turnCount++;
+    //   for (int i = 0; i < 4; i++)         // loop for 4 ticks
+    //   {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //   }
+      
+    // }
+    // cprintf("for one loop ended\n");
+    // release(&ptable.lock);
+
+//------------------------RR scheduling-----------------------
+
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
@@ -347,16 +587,19 @@ scheduler(void)
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
-
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
+      if (mlfq_tickCount == 100){
+        priority_boost();
+      }
+      
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
     }
     release(&ptable.lock);
-
+//-------------------------------------------------------------
   }
 }
 
@@ -395,7 +638,6 @@ yield(void)
   sched();
   release(&ptable.lock);
 }
-
 
 // A fork child's very first scheduling by scheduler()
 // will swtch here.  "Return" to user space.
@@ -438,12 +680,15 @@ sleep(void *chan, struct spinlock *lk)
   // (wakeup runs with ptable.lock locked),
   // so it's okay to release lk.
   if(lk != &ptable.lock){  //DOC: sleeplock0
+    
+    cprintf("ptable not same pname: %s\n", p->name);
     acquire(&ptable.lock);  //DOC: sleeplock1
     release(lk);
   }
   // Go to sleep.
   p->chan = chan;
   p->state = SLEEPING;
+  cprintf("pname: %s\n", p->name);
 
   sched();
 

@@ -1,23 +1,33 @@
 #include "types.h"
 #include "defs.h"
-#include "proc.h"
 #include "priority_queue.h"
+#include "param.h"
+#include "mmu.h"
+#include "x86.h"
+#include "proc.h"
 
-struct q_node* queue_newNode(int index, uint d)
+struct q_node* queue_newNode(struct proc* proc, int ismlfq)
 {
-	struct q_node* temp;
-	temp->procIndex = index;
-	temp->distance = d;
+	struct q_node* temp = (struct q_node*)kalloc();
+	temp->p = proc;
+	temp->isMLFQ = ismlfq;
+	temp->distance = 0;
 	temp->next = 0;
 	return temp;
 }
 
 struct q_header* queue_newHeader(int t)
 {
-	struct q_header* temp;
+	struct q_header* temp = (struct q_header*)kalloc();
 	temp->type = t;
 	temp->next = 0;
 	return temp;
+}
+
+void queue_freeNode(struct q_node** node)
+{
+	(*node)->p = 0;
+	kfree((char*)(*node));
 }
 
 int queue_push(struct q_header** header, struct q_node** node)
@@ -56,8 +66,8 @@ struct q_node* queue_pop(struct q_header** header)
 	//printf("pop called\n");
 	struct q_node* temp = (*header)->next;
 	//printf("pop called 2\n");
-	if((*header)->next != 0){ 
-		(*header)->next = (*header)->next->next;
+	if(temp != 0){ 
+		(*header)->next = temp->next;
 		//printf("pop called 3\n");
 	} //else printf("pop called 4\n");
 	return temp;

@@ -13,12 +13,12 @@ struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
-uint MLFQ_tickCount = 0;
 
 void
 tvinit(void)
 {
   int i;
+
   for(i = 0; i < 256; i++)
     SETGATE(idt[i], 0, SEG_KCODE<<3, vectors[i], 0);
   SETGATE(idt[T_SYSCALL], 1, SEG_KCODE<<3, vectors[T_SYSCALL], DPL_USER);
@@ -50,7 +50,7 @@ trap(struct trapframe *tf)
   case T_IRQ0 + IRQ_TIMER:
     if(cpuid() == 0){
       acquire(&tickslock);
-			ticks++;
+      ticks++;
       wakeup(&ticks);
       release(&tickslock);
     }
@@ -102,17 +102,10 @@ trap(struct trapframe *tf)
 
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
-  //if(myproc() && myproc()->state == RUNNING &&
-	  //tf->trapno == T_IRQ0+IRQ_TIMER)
-  	//yield();
-  if(myproc() && myproc()->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER) {
-		if(myproc()->tickets == 0) { //process is in MLFQ
-			//TODO
-		} else { //process is in Stride
-	  	//TODO
-		}
-		yield();
-	}
+  if(myproc() && myproc()->state == RUNNING &&
+     tf->trapno == T_IRQ0+IRQ_TIMER)
+    yield();
+
   // Check if the process has been killed since we yielded
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
