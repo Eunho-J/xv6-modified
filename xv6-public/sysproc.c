@@ -93,8 +93,7 @@ sys_uptime(void)
 int
 sys_yield(void)
 {
-  sysyield_called = 1;
-	yield();
+	yield2();
 
 	//uint ticks0;
 	//acquire(&tickslock);
@@ -108,4 +107,20 @@ sys_yield(void)
 	//}
 	//release(&tickslock);
 	return 0;
+}
+
+int
+sys_set_cpu_share(void)
+{
+  int n;
+
+  if(argint(0, &n) < 0)
+    return -1;
+  return !set_cpu_share(n);
+}
+
+int
+sys_getlev(void)
+{
+  return getlev();
 }

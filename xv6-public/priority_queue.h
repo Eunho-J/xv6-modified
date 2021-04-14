@@ -1,11 +1,14 @@
-#define QUEUE_MLFQ		0
-#define QUEUE_STRIDE	1
-#define IS_MLFQSCHED	1
+#define QUEUE_MLFQ			0
+#define QUEUE_STRIDE		1
+#define IS_MLFQ_IN_STRIDE	-1
 
 struct q_node {
-	struct proc* p;
+	int pid;
+	int isRunnable;
+	uint tickets;
+	uint turnCount;
+	uint tickCount;
 	uint distance;
-	int isMLFQ;
 	struct q_node* next;
 };
 
