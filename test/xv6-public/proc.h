@@ -32,7 +32,6 @@ struct context {
   uint eip;
 };
 
-
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
@@ -50,8 +49,10 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-
- 
+  // uint turnCount;			   // Used for scheduling: MLFQ:count for 5(0)&10(1)&over(2) / Stride:calculate distance 
+  // uint tickets;				   // If 0, proc is in MLFQ. else, proc is in Stride with cpu_share(tickets)
+  // uint tickCount;			   // Used for checking wheather turn is over or not
+  struct q_node* p_node; // Used for find Node of the process
 };
 
 // Process memory is laid out contiguously, low addresses first:
