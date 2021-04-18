@@ -1,3 +1,26 @@
+// #include "priority_queue.h"
+#define QUEUE_MLFQ			0
+#define QUEUE_STRIDE		1
+#define IS_MLFQ_IN_STRIDE	-1
+
+struct q_node {
+	int wasRunnable;
+	int share;
+	int level;
+	uint turnCount;
+	uint tickCount;
+	uint distance;
+	struct proc* proc;
+	struct q_node* next;
+};
+
+struct q_header {
+	int type;
+	int level;
+	struct q_node* next;
+};
+
+
 // Per-CPU state
 struct cpu {
   uchar apicid;                // Local APIC ID
@@ -32,6 +55,7 @@ struct context {
   uint eip;
 };
 
+
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
@@ -49,10 +73,8 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  // uint turnCount;			   // Used for scheduling: MLFQ:count for 5(0)&10(1)&over(2) / Stride:calculate distance 
-  // uint tickets;				   // If 0, proc is in MLFQ. else, proc is in Stride with cpu_share(tickets)
-  // uint tickCount;			   // Used for checking wheather turn is over or not
-  struct q_node* p_node; // Used for find Node of the process
+
+  struct q_node p_node;        // process node for scheduling queue
 };
 
 // Process memory is laid out contiguously, low addresses first:
