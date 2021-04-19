@@ -15,7 +15,7 @@ main(int argc, char *argv[])
 			// printf(1,"set cpu share!\n");
 			while(loopCount++ < 20)
 			{
-				printf(1,"Child %d\n", loopCount);
+				printf(1,"Child %d %d\n", loopCount, uptime());
 				yield();
 			}
 		// }
@@ -25,7 +25,7 @@ main(int argc, char *argv[])
 	{
 		while(loopCount++ < 20)
 		{
-			printf(1,"Parent %d\n",loopCount);
+			printf(1,"Parent %d %d\n",loopCount, uptime());
 			yield();
 		}
 		wait();
