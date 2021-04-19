@@ -661,6 +661,7 @@ set_cpu_share(int share)
   shareleft.left = shareleft.left - share;
   curproc->p_node.share = share;
   queue_resetStride(&stride);
+  release(&shareleft.lock);
   return 0;
 }
 
