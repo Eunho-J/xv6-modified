@@ -376,7 +376,7 @@ void
 scheduler(void)
 {
   struct proc *p;
-  struct q_node *node;
+  // struct q_node *node;
   struct cpu *c = mycpu();
 
   c->proc = 0;
@@ -660,7 +660,7 @@ set_cpu_share(int share)
   curproc->p_node.level = -1;
   shareleft.left = shareleft.left - share;
   curproc->p_node.share = share;
-  queue_resetTickCount
+  queue_resetStride(&stride);
   return 0;
 }
 
