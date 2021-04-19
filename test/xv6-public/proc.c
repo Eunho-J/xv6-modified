@@ -387,43 +387,59 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    //   if(p->state != RUNNABLE)
-    //     continue;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state != RUNNABLE)
+        continue;
 
-    //   // Switch to chosen process.  It is the process's job
-    //   // to release ptable.lock and then reacquire it
-    //   // before jumping back to us.
-    //   c->proc = p;
-    //   switchuvm(p);
-    //   p->state = RUNNING;
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
 
-    //   swtch(&(c->scheduler), p->context);
-    //   switchkvm();
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
 
-    //   // Process is done running for now.
-    //   // It should have changed its p->state before coming back.
-    //   c->proc = 0;
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+    }
+
+
+
+    // if ( !queue_isEmpty(&mlfq_0) )
+    // {
+    //   node = queue_pop(&mlfq_0);
+    //   p = node->proc;
+    //   /* code */
     // }
-    if ( !queue_isEmpty(&mlfq_0) )
-    {
-      node = queue_pop(&mlfq_0);
-      /* code */
-    }
-    else if ( !queue_isEmpty(&mlfq_1) )
-    {
-      node = queue_pop(&mlfq_1);
-      /* code */
-    }
-    else if ( !queue_isEmpty(&mlfq_2) )
-    {
-      node = queue_pop(&mlfq_2);
-      /* code */
-    }
-    else
-    {
-      // mlfq is empty!!
-    }
+    // else if ( !queue_isEmpty(&mlfq_1) )
+    // {
+    //   node = queue_pop(&mlfq_1);
+    //   p = node->proc;
+    //   /* code */
+    // }
+    // else if ( !queue_isEmpty(&mlfq_2) )
+    // {
+    //   node = queue_pop(&mlfq_2);
+    //   p = node->proc;
+    //   /* code */
+    // }
+    // else
+    // {
+    //   // mlfq is empty!!
+    //   // TODO: increase turnCount of mlfq & finish the turn of mlfq scheduler
+    // }
+    
+    // if (p->state == SLEEPING)
+    // {
+    //   // mlfq: do nothing but skip turn
+    //   // stride: increase turnCount but skip turn
+    //   if (p->p_node.share > 0)
+    //     p->p_node.turnCount++;
+      
+    // }
     
     
     
@@ -635,11 +651,16 @@ procdump(void)
 int
 set_cpu_share(int share)
 {
-  // struct proc* curproc = myproc();
   acquire(&shareleft.lock);
-  if( shareleft.left < share) {
-    return 1;
+  if( shareleft.left < share || share <= 0) {
+    release(&shareleft.lock);
+    return -1;
   }
+  struct proc* curproc = myproc();
+  curproc->p_node.level = -1;
+  shareleft.left = shareleft.left - share;
+  curproc->p_node.share = share;
+  queue_resetTickCount
   return 0;
 }
 
@@ -720,8 +741,11 @@ int queue_isEmpty(struct q_header* header)
 	return header->next == 0;
 }
 
-int queue_resetTickCount(struct q_header* stride)
+int queue_resetStride(struct q_header* stride)
 {
+  if(stride->type != QUEUE_STRIDE)
+    return -1;
+
 	struct q_node* temp = stride->next;
 	while(temp != 0){
 		temp->tickCount = 0;

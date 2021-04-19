@@ -132,7 +132,7 @@ struct q_node*			queue_pop(struct q_header*);
 struct q_node*			queue_popall(struct q_header*);
 int						queue_pushall(struct q_header*, struct q_node*);
 int						queue_isEmpty(struct q_header*);
-int                     queue_resetTickCount(struct q_header*);
+int                     queue_resetStride(struct q_header*);
 void                    queue_freeNode(struct q_node*);
 int                     queue_findPid(struct q_header*, int);
 
@@ -178,6 +178,7 @@ void            timerinit(void);
 // trap.c
 void            idtinit(void);
 extern uint     ticks;
+extern uint     ticks_checker;
 void            tvinit(void);
 extern struct spinlock tickslock;
 
