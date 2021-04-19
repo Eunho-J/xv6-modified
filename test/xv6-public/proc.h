@@ -1,10 +1,13 @@
 // #include "priority_queue.h"
-#define QUEUE_MLFQ			0
-#define QUEUE_STRIDE		1
-#define IS_MLFQ_IN_STRIDE	-1
+#define QUEUE_MLFQ			      0
+#define QUEUE_STRIDE		      1
+#define LEVEL_MLFQ_0          0
+#define LEVEL_MLFQ_1          1
+#define LEVEL_MLFQ_2          2
+#define LEVEL_STRIDE          -1
+#define LEVEL_MLFQ_AS_PROC    -2
 
 struct q_node {
-	int wasRunnable;
 	int share;
 	int level;
 	uint turnCount;

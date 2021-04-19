@@ -105,8 +105,26 @@ trap(struct trapframe *tf)
   // If interrupts were on while locks held, would need to check nlock.
   if(myproc() && myproc()->state == RUNNING &&
      tf->trapno == T_IRQ0+IRQ_TIMER) {
-      yield();
-      cprintf("--[yield fin]--\n");
+      if( myproc()->p_node.level == LEVEL_MLFQ_0 )
+        yield();
+      else if (myproc()->p_node.level == LEVEL_MLFQ_1)
+      {
+        if (ticks - ticks_checker >= 2)
+          yield();
+      }
+      else if (myproc()->p_node.level == LEVEL_MLFQ_2)
+      {
+        if (ticks - ticks_checker >= 4)
+          yield();
+      }
+      else if (myproc()->p_node.level == LEVEL_STRIDE)
+      {
+        if (ticks - ticks_checker >= 4)
+          yield();
+      }
+      else
+        panic("process level inavailable");
+      // cprintf("--[yield fin]--\n");
   }
 
   // Check if the process has been killed since we yielded

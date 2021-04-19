@@ -24,21 +24,15 @@ struct q_header mlfq_0;
 struct q_header mlfq_1;
 struct q_header mlfq_2;
 struct q_header stride;
+struct q_node mlfq_as_proc;
 
-struct 
-{
-  struct spinlock lock;
-  int left;
-} shareleft;
+int shareleft;
 
 
 void
 queue_init(void)
 {
-  initlock(&shareleft.lock, "share");
-  acquire(&shareleft.lock);
-  shareleft.left = 80;
-  release(&shareleft.lock);
+  shareleft = 80;
 
   mlfq_0.level = 0;
   mlfq_0.type = QUEUE_MLFQ;
@@ -55,6 +49,15 @@ queue_init(void)
   stride.level = -1;
   stride.type = QUEUE_STRIDE;
   stride.next = 0;
+
+  mlfq_as_proc.level = LEVEL_MLFQ_AS_PROC;
+  mlfq_as_proc.share = 20;
+  mlfq_as_proc.turnCount = 0;
+  mlfq_as_proc.tickCount = 0;
+  mlfq_as_proc.distance = 0;
+  mlfq_as_proc.proc = 0;
+  mlfq_as_proc.next = 0;
+  queue_push(&stride, &mlfq_as_proc);
 }
 
 void
@@ -151,7 +154,6 @@ found:
 
   // Set up node for scheduling queue
   p->p_node.proc = p;
-  p->p_node.wasRunnable = 0;
   p->p_node.next = 0;
   p->p_node.share = 0;
   p->p_node.turnCount = 0;
@@ -376,7 +378,7 @@ void
 scheduler(void)
 {
   struct proc *p;
-  // struct q_node *node;
+  struct q_node *node;
   struct cpu *c = mycpu();
 
   c->proc = 0;
@@ -387,59 +389,87 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
+    // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    //   if(p->state != RUNNABLE)
+    //     continue;
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
+    //   // Switch to chosen process.  It is the process's job
+    //   // to release ptable.lock and then reacquire it
+    //   // before jumping back to us.
+    //   c->proc = p;
+    //   switchuvm(p);
+    //   p->state = RUNNING;
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
+    //   swtch(&(c->scheduler), p->context);
+    //   switchkvm();
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+    //   // Process is done running for now.
+    //   // It should have changed its p->state before coming back.
+    //   c->proc = 0;
+    // }
+
+
+
+
+    if (queue_isEmpty(&stride))
+    {
+      panic("scheduler: stride is empty!!\n");
     }
 
+    node = queue_pop(&stride);
+    if(node->level == LEVEL_MLFQ_AS_PROC){
+      for (int i = 0; i < 4;)
+      {
+        //TODO:뽑으면서 turnCount 체크해서 level 바꿔주고 queue push
+        if ( !queue_isEmpty(&mlfq_0) )
+        {
+          i++;
+          node = queue_pop(&mlfq_0);
+          node->turnCount++;
+          if(node->turnCount >= 5)
+            queue_push(&mlfq_0, node);
+          p = node->proc;
+          /* code */
+        }
+        else if ( !queue_isEmpty(&mlfq_1) )
+        {
+          i += 2;
+          node = queue_pop(&mlfq_1);
+          p = node->proc;
+          /* code */
+        }
+        else if ( !queue_isEmpty(&mlfq_2) )
+        {
+          i += 4;
+          node = queue_pop(&mlfq_2);
+          p = node->proc;
+          /* code */
+        }
+        else
+        {
+          // mlfq is empty!!
+          break;
+        }
 
 
-    // if ( !queue_isEmpty(&mlfq_0) )
-    // {
-    //   node = queue_pop(&mlfq_0);
-    //   p = node->proc;
-    //   /* code */
-    // }
-    // else if ( !queue_isEmpty(&mlfq_1) )
-    // {
-    //   node = queue_pop(&mlfq_1);
-    //   p = node->proc;
-    //   /* code */
-    // }
-    // else if ( !queue_isEmpty(&mlfq_2) )
-    // {
-    //   node = queue_pop(&mlfq_2);
-    //   p = node->proc;
-    //   /* code */
-    // }
-    // else
-    // {
-    //   // mlfq is empty!!
-    //   // TODO: increase turnCount of mlfq & finish the turn of mlfq scheduler
-    // }
-    
-    // if (p->state == SLEEPING)
-    // {
-    //   // mlfq: do nothing but skip turn
-    //   // stride: increase turnCount but skip turn
-    //   if (p->p_node.share > 0)
-    //     p->p_node.turnCount++;
+
+
+      }
       
-    // }
+      
+      
+
+
+    }
+    
+    if (p->state == SLEEPING)
+    {
+      // mlfq: do nothing but skip turn
+      // stride: increase turnCount but skip turn
+      if (p->p_node.share > 0)
+        p->p_node.turnCount++;
+      
+    }
     
     
     
@@ -651,23 +681,20 @@ procdump(void)
 int
 set_cpu_share(int share)
 {
-  acquire(&shareleft.lock);
-  if( shareleft.left < share || share <= 0) {
-    release(&shareleft.lock);
+  //TODO: 기존 queue에서 delete 후 stride에 push
+  acquire(&ptable.lock);
+  if( shareleft < share || share <= 0) {
+    release(&ptable.lock);
     return -1;
   }
   struct proc* curproc = myproc();
   curproc->p_node.level = -1;
-  shareleft.left = shareleft.left - share;
+  shareleft = shareleft - share;
   curproc->p_node.share = share;
   queue_resetStride(&stride);
-  release(&shareleft.lock);
+  release(&ptable.lock);
   return 0;
 }
-
-
-
-
 
 int queue_push(struct q_header* header, struct q_node* node)
 {
