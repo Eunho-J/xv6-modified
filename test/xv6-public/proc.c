@@ -462,14 +462,14 @@ scheduler(void)
 
     }
     
-    if (p->state == SLEEPING)
-    {
-      // mlfq: do nothing but skip turn
-      // stride: increase turnCount but skip turn
-      if (p->p_node.share > 0)
-        p->p_node.turnCount++;
+    // if (p->state == SLEEPING)
+    // {
+    //   // mlfq: do nothing but skip turn
+    //   // stride: increase turnCount but skip turn
+    //   if (p->p_node.share > 0)
+    //     p->p_node.turnCount++;
       
-    }
+    // }
     
     
     
