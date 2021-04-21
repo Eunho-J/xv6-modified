@@ -318,6 +318,10 @@ exit(void)
 
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
+  curproc->p_node.level = 0;
+  curproc->p_node.turnCount = 0;
+  curproc->p_node.distance = 0;
+  curproc->p_node.share = 0;
   sched();
   panic("zombie exit");
 }
