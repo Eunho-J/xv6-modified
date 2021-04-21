@@ -26,7 +26,7 @@ struct q_header mlfq_2;
 struct q_header stride;
 struct q_node mlfq_as_proc;
 
-int shareleft;
+int shareleft = 80;
 
 
 void
@@ -409,58 +409,133 @@ scheduler(void)
     // }
 
 
+    
 
 
-    if (queue_isEmpty(&stride))
+    
+    if ((node = queue_pop(&stride)) == 0)
     {
-      panic("scheduler: stride is empty!!\n");
+      panic("stride is empty!\n");
     }
 
-    node = queue_pop(&stride);
-    if(node->level == LEVEL_MLFQ_AS_PROC){
+    // prevent buffer overflow of distances
+    if (node->distance > 99 - shareleft) // means every node in stride has about 100 - shareleft distance
+    {
+      // reset all distance of stride processes to prevent buffer overflow.
+      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+      {
+        if (temp->p_node.level == LEVEL_STRIDE)
+        {
+          p->p_node.tickCount = 0;
+          p->p_node.turnCount = 0;
+          p->p_node.distance = 0;
+        }
+      }
+      p = 0;
+    }
+    
+    
+    if(node->level == LEVEL_MLFQ_AS_PROC)
+    {
+      mlfq_as_proc.turnCount++;
+      mlfq_as_proc.distance = mlfq_as_proc.turnCount * (100 - shareleft) / mlfq_as_proc.share;
+      queue_push(&stride, &mlfq_as_proc);
       for (int i = 0; i < 4;)
       {
-        //TODO:뽑으면서 turnCount 체크해서 level 바꿔주고 queue push
-        if ( !queue_isEmpty(&mlfq_0) )
+        if(queue_hasRunnable(&mlfq_0)) // mlfq_0 has runnable node
         {
-          i++;
           node = queue_pop(&mlfq_0);
-          node->turnCount++;
-          if(node->turnCount >= 5)
-            queue_push(&mlfq_0, node);
-          p = node->proc;
-          /* code */
+          if (node->proc->state == SLEEPING)
+          {
+            queue_push(&mlfq_0,node);
+            continue;
+          }
+          i++;
         }
-        else if ( !queue_isEmpty(&mlfq_1) )
+        else if (queue_hasRunnable(&mlfq_1)) // mlfq_1 has runnable node
         {
-          i += 2;
           node = queue_pop(&mlfq_1);
-          p = node->proc;
-          /* code */
+          if (node->proc->state == SLEEPING)
+          {
+            queue_push(&mlfq_1,node);
+            continue;
+          }
+          i+=2;
         }
-        else if ( !queue_isEmpty(&mlfq_2) )
+        else if (queue_hasRunnable(&mlfq_2)) // mlfq_2 has runnable node
         {
-          i += 4;
           node = queue_pop(&mlfq_2);
-          p = node->proc;
-          /* code */
+          if (node->proc->state == SLEEPING)
+          {
+            queue_push(&mlfq_2,node);
+            continue;
+          }
+          i+=4;
         }
-        else
+        else // mlfq has no runnable node
         {
-          // mlfq is empty!!
           break;
         }
+        
 
+        node->turnCount++;
+        if (node->turnCount >= 5 && node->level < 2)
+        {
+          node->turnCount = 0;
+          node->level++;
+        }
+        
+        p = node->proc;
+        
+        
+        c->proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
 
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
 
-
+        if (p->state == RUNNABLE || p->state == SLEEPING)
+        {
+          if (p->p_node.level == LEVEL_MLFQ_0)
+          {
+            queue_push(&mlfq_0,&(p->p_node));
+          }
+          else if (p->p_node.level == LEVEL_MLFQ_1)
+          {
+            queue_push(&mlfq_1,&(p->p_node));
+          }
+          else if (p->p_node.level == LEVEL_MLFQ_2)
+          {
+            queue_push(&mlfq_2,&(p->p_node));
+          }
+          else if (p->p_node.level == LEVEL_STRIDE)
+          {
+            p->p_node.turnCount++; // since set_cpu_share() called, turnCount is reset to 0.
+            p->p_node.distance = p->p_node.turnCount * (100 - shareleft) / p->p_node.share;
+            queue_push(&stride,&(p->p_node));
+          }
+          else
+          {
+            panic("process level undefined!\n");
+          }
+        }
+        
+        c->proc = 0;
       }
       
-      
-      
-
-
     }
+    else if (node->level == LEVEL_STRIDE)
+    {
+      // TODO: stride node execution code here
+    }
+    else
+    {
+      panic("level of popped node from stride is not LEVEL_STRIDE!\n");
+    }
+    
+    
+    
     
     // if (p->state == SLEEPING)
     // {
@@ -681,22 +756,35 @@ procdump(void)
 int
 set_cpu_share(int share)
 {
-  //TODO: 기존 queue에서 delete 후 stride에 push
   acquire(&ptable.lock);
   if( shareleft < share || share <= 0) {
     release(&ptable.lock);
     return -1;
   }
-  struct proc* curproc = myproc();
+  struct proc *curproc = myproc();
+  struct proc *temp;
+  
   curproc->p_node.level = -1;
   shareleft = shareleft - share;
   curproc->p_node.share = share;
-  queue_resetStride(&stride);
+  
+  // reset distance of all stride processes
+  for (temp = ptable.proc; temp < &ptable.proc[NPROC]; temp++)
+  {
+    if (temp->p_node.level == LEVEL_STRIDE)
+    {
+      temp->p_node.tickCount = 0;
+      temp->p_node.turnCount = 0;
+      temp->p_node.distance = 0;
+    }
+  }
+  
   release(&ptable.lock);
   return 0;
 }
 
-int queue_push(struct q_header* header, struct q_node* node)
+int 
+queue_push(struct q_header* header, struct q_node* node)
 {
 	//printf("push called\n");
 	if(header->next == 0) {
@@ -728,28 +816,29 @@ int queue_push(struct q_header* header, struct q_node* node)
 	return 0;
 }
 
-struct q_node* queue_pop(struct q_header* header)
+struct q_node* 
+queue_pop(struct q_header* header)
 {
 	struct q_node* temp = 0;
-	if(!queue_isEmpty(header)){
-		temp = header->next;
-		if(temp != 0){ 
-			header->next = temp->next;
-			temp->next = 0;
-		}
-	}
+  temp = header->next;
+  if(temp != 0){ 
+    header->next = temp->next;
+    temp->next = 0;
+  }
 	
 	return temp;
 }
 
-struct q_node* queue_popall(struct q_header* header)
+struct q_node* 
+queue_popall(struct q_header* header)
 {
 	struct q_node* temp = header->next;
 	header->next = 0;
 	return temp;
 }
 
-int queue_pushall(struct q_header* header, struct q_node* frontNode)
+int 
+queue_pushall(struct q_header* header, struct q_node* frontNode)
 {
 	struct q_node* temp = header->next;
 	if(temp == 0){
@@ -763,26 +852,22 @@ int queue_pushall(struct q_header* header, struct q_node* frontNode)
 	return 1;
 }
 
-int queue_isEmpty(struct q_header* header)
+int 
+queue_hasRunnable(struct q_header* header)
 {
-	//printf("isEmpty called\n");
-	return header->next == 0;
-}
-
-int queue_resetStride(struct q_header* stride)
-{
-  if(stride->type != QUEUE_STRIDE)
-    return -1;
-
-	struct q_node* temp = stride->next;
-	while(temp != 0){
-		temp->tickCount = 0;
-		temp->distance = 0;
-		temp->turnCount = 0;
-		// cprintf("pid: %d / dis: %d / tC: %d\n", temp->pid, temp->distance, temp->tickCount);
-		temp = temp->next;
-	}
-	return 1;
+  int hasRunnable = 0;
+  struct q_node *temp = header->next;
+  while (temp != 0)
+  {
+    if (temp->proc->state == RUNNABLE)
+    {
+      hasRunnable++;
+      break;
+    }
+    temp = temp->next;
+  }
+  
+  return hasRunnable;
 }
 
 int queue_findPid(struct q_header* header, int p)

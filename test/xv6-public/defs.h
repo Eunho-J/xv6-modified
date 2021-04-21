@@ -131,8 +131,7 @@ int						queue_push(struct q_header*, struct q_node*);
 struct q_node*			queue_pop(struct q_header*);
 struct q_node*			queue_popall(struct q_header*);
 int						queue_pushall(struct q_header*, struct q_node*);
-int						queue_isEmpty(struct q_header*);
-int                     queue_resetStride(struct q_header*);
+int                     queue_hasRunnable(struct q_header*);
 void                    queue_freeNode(struct q_node*);
 int                     queue_findPid(struct q_header*, int);
 

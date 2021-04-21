@@ -42,6 +42,10 @@ trap(struct trapframe *tf)
       exit();
     myproc()->tf = tf;
     syscall();
+    if (tf->eax == syscalls[SYS_yield] || tf->eax == syscalls[SYS_sleep]) // if process called yield/sleep itself
+    { // adjust ticks_checker when process runs again because it starts from here.
+      ticks_checker = ticks;
+    }
     if(myproc()->killed)
       exit();
     return;
@@ -103,8 +107,7 @@ trap(struct trapframe *tf)
 
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
-  if(myproc() && myproc()->state == RUNNING &&
-     tf->trapno == T_IRQ0+IRQ_TIMER) {
+  if(myproc() && myproc()->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER) {
       if( myproc()->p_node.level == LEVEL_MLFQ_0 )
         yield();
       else if (myproc()->p_node.level == LEVEL_MLFQ_1)
@@ -125,6 +128,7 @@ trap(struct trapframe *tf)
       else
         panic("process level inavailable");
       // cprintf("--[yield fin]--\n");
+      
   }
 
   // Check if the process has been killed since we yielded

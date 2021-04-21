@@ -12,7 +12,7 @@ struct q_node {
 	int level;
 	uint turnCount;
 	uint tickCount;
-	uint distance;
+	float distance;
 	struct proc* proc;
 	struct q_node* next;
 };
