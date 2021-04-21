@@ -424,7 +424,7 @@ scheduler(void)
       // reset all distance of stride processes to prevent buffer overflow.
       for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
       {
-        if (temp->p_node.level == LEVEL_STRIDE)
+        if (p->p_node.level == LEVEL_STRIDE)
         {
           p->p_node.tickCount = 0;
           p->p_node.turnCount = 0;
