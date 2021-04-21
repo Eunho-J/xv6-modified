@@ -42,7 +42,7 @@ trap(struct trapframe *tf)
       exit();
     myproc()->tf = tf;
     syscall();
-    if (tf->eax == syscalls[SYS_yield] || tf->eax == syscalls[SYS_sleep]) // if process called yield/sleep itself
+    if (tf->eax == sys_yield || tf->eax == sys_sleep) // if process called yield/sleep itself
     { // adjust ticks_checker when process runs again because it starts from here.
       ticks_checker = ticks;
     }
