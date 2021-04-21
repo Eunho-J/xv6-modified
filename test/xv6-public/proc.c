@@ -366,6 +366,12 @@ wait(void)
   }
 }
 
+void
+priority_boost(void)
+{
+  //TODO: priority boost of mlfq queues.
+}
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -534,41 +540,6 @@ scheduler(void)
       panic("level of popped node from stride is not LEVEL_STRIDE!\n");
     }
     
-    
-    
-    
-    // if (p->state == SLEEPING)
-    // {
-    //   // mlfq: do nothing but skip turn
-    //   // stride: increase turnCount but skip turn
-    //   if (p->p_node.share > 0)
-    //     p->p_node.turnCount++;
-      
-    // }
-    
-    
-    
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     release(&ptable.lock);
 
   }
