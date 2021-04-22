@@ -12,7 +12,7 @@
 
 #define MLFQ_LEVEL		(3)	/* Number of level(priority) of MLFQ scheduler */
 
-#define WORKLOAD_NUM	(5) /* The number of workloads */
+#define WORKLOAD_NUM	(10) /* The number of workloads */
 
 /**
  * This function requests portion of CPU resources with given parameter
@@ -131,14 +131,14 @@ main(int argc, char *argv[])
 	/* Workload list */
 	struct workload workloads[WORKLOAD_NUM] = {
 		/* Process scheduled by Stride scheduler, use 5% of CPU resources */
-		// {test_stride, 5},
-		// /* Process scheduled by Stride scheduler, use 15% of CPU resources */
-		// {test_stride, 15},
-		// {test_stride, 10},
-		// {test_stride, 1},
+		{test_stride, 5},
+		/* Process scheduled by Stride scheduler, use 15% of CPU resources */
+		{test_stride, 15},
+		{test_stride, 10},
+		{test_stride, 1},
 		{test_mlfq, MLFQ_YIELD},
 		{test_mlfq, MLFQ_LEVCNT_YIELD},
-		// {test_stride, 20},
+		{test_stride, 20},
 		{test_mlfq, MLFQ_NONE},
 		/* Process scheduled by MLFQ scheduler, does not yield itself */
 		{test_mlfq, MLFQ_LEVCNT},

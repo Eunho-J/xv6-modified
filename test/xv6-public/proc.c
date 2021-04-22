@@ -369,7 +369,48 @@ wait(void)
 void
 priority_boost(void)
 {
-  //TODO: priority boost of mlfq queues.
+  // bpriority boost of mlfq queues.
+  struct proc* p;
+  mlfq_0.next = 0;
+  mlfq_1.next = 0;
+  mlfq_2.next = 0;
+
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if (p->state == RUNNABLE || p->state == SLEEPING)
+    {
+      if (p->p_node.level == LEVEL_MLFQ_0)
+      {
+        p->p_node.turnCount = 0;
+        p->p_node.next = 0;
+        p->p_node.level = LEVEL_MLFQ_0;
+        queue_push(&mlfq_0,&(p->p_node));
+      }
+      else if (p->p_node.level == LEVEL_MLFQ_1)
+      {
+        p->p_node.turnCount = 0;
+        p->p_node.next = 0;
+        p->p_node.level = LEVEL_MLFQ_0;
+        queue_push(&mlfq_0,&(p->p_node));
+      }
+      else if (p->p_node.level == LEVEL_MLFQ_2)
+      {
+        p->p_node.turnCount = 0;
+        p->p_node.next = 0;
+        p->p_node.level = LEVEL_MLFQ_1;
+        queue_push(&mlfq_1,&(p->p_node));
+      }
+    }
+    else if (p->state == RUNNING)
+    {
+      p->p_node.turnCount = 1;
+      p->p_node.next = 0;
+      if (p->p_node.level > LEVEL_MLFQ_0)
+      {
+        p->p_node.level = p->p_node.level - 1;
+      }
+    }
+  }
 }
 
 //PAGEBREAK: 42
@@ -386,6 +427,7 @@ scheduler(void)
   struct proc *p;
   struct q_node *node;
   struct cpu *c = mycpu();
+  uint mlfq_tickCount = 0;
 
   c->proc = 0;
   
@@ -414,11 +456,6 @@ scheduler(void)
     //   c->proc = 0;
     // }
 
-
-    
-
-
-    
     if ((node = queue_pop(&stride)) == 0)
     {
       panic("stride is empty!\n");
@@ -457,6 +494,7 @@ scheduler(void)
             continue;
           }
           i++;
+          mlfq_tickCount++;
         }
         else if (queue_hasRunnable(&mlfq_1)) // mlfq_1 has runnable node
         {
@@ -466,7 +504,8 @@ scheduler(void)
             queue_push(&mlfq_1,node);
             continue;
           }
-          i+=2;
+          i += 2;
+          mlfq_tickCount += 2;
         }
         else if (queue_hasRunnable(&mlfq_2)) // mlfq_2 has runnable node
         {
@@ -476,7 +515,8 @@ scheduler(void)
             queue_push(&mlfq_2,node);
             continue;
           }
-          i+=4;
+          i += 4;
+          mlfq_tickCount += 4;
         }
         else // mlfq has no runnable node
         {
@@ -528,12 +568,41 @@ scheduler(void)
         }
         
         c->proc = 0;
+
+        if (mlfq_tickCount >= 100)
+        {
+          mlfq_tickCount = 0;
+          priority_boost();
+        }
+        
       }
       
     }
     else if (node->level == LEVEL_STRIDE)
     {
       // TODO: stride node execution code here
+      if (node->proc->state == SLEEPING)
+      {
+        queue_push(&stride, node);
+        continue;
+      }
+
+      node->turnCount++;
+      node->distance = node->turnCount * (100 - shareleft) / node->share;
+
+      p = node->proc;
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
+
+      if (p->state == RUNNABLE || p->state == SLEEPING)
+      {
+        queue_push(&stride, &(p->p_node));
+      }
+
+      c->proc = 0;
     }
     else
     {
