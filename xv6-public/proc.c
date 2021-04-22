@@ -564,6 +564,7 @@ scheduler(void)
       if (node->proc->state == SLEEPING)
       {
         queue_push(&stride, node);
+        release(&ptable.lock);
         continue;
       }
 
