@@ -12,7 +12,7 @@
 
 #define MLFQ_LEVEL		(3)	/* Number of level(priority) of MLFQ scheduler */
 
-#define WORKLOAD_NUM	(48) /* The number of workloads */
+#define WORKLOAD_NUM	(36) /* The number of workloads */
 
 /**
  * This function requests portion of CPU resources with given parameter
@@ -142,10 +142,10 @@ main(int argc, char *argv[])
 		{test_stride, 1},
 		{test_stride, 1},
 		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
+		{test_stride, 3},
+		{test_stride, 3},
+		{test_stride, 3},
+		{test_stride, 3},
 		{test_stride, 2},
 		{test_stride, 2},
 		{test_stride, 2},
@@ -158,26 +158,14 @@ main(int argc, char *argv[])
 		{test_stride, 2},
 		{test_stride, 2},
 		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
+		{test_stride, 4},
+		{test_stride, 4},
+		{test_stride, 4},
+		{test_stride, 4},
+		{test_stride, 4},
+		{test_stride, 4},
+		{test_stride, 4},
+		{test_stride, 4},
 		// {test_mlfq, MLFQ_NONE},
 	};
 
