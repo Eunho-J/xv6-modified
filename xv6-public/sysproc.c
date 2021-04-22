@@ -93,19 +93,7 @@ sys_uptime(void)
 int
 sys_yield(void)
 {
-	yield2();
-
-	//uint ticks0;
-	//acquire(&tickslock);
-	//ticks0=ticks;
-	//while(ticks-ticks0 == 0){
-	//	if(myproc()->killed){
-	//		release(&tickslock);
-	//		return -1;
-	//	}
-	//	yield2(&ticks, &tickslock);
-	//}
-	//release(&tickslock);
+	yield();
 	return 0;
 }
 
@@ -116,11 +104,11 @@ sys_set_cpu_share(void)
 
   if(argint(0, &n) < 0)
     return -1;
-  return !set_cpu_share(n);
+  return set_cpu_share(n);
 }
 
 int
 sys_getlev(void)
 {
-  return getlev();
+  return myproc()->p_node.level;
 }

@@ -107,7 +107,7 @@ test_mlfq(int type)
 
 	/* Report */
 	if (type == MLFQ_LEVCNT || type == MLFQ_LEVCNT_YIELD ) {
-		printf(1, "(%d) MLfQ(%s), cnt : %d, lev[0] : %d, lev[1] : %d, lev[2] : %d\n", getpid(),
+		printf(1, "MLfQ(%s), cnt : %d, lev[0] : %d, lev[1] : %d, lev[2] : %d\n",
 				type == MLFQ_LEVCNT ? "compute" : "yield", cnt, cnt_level[0], cnt_level[1], cnt_level[2]);
 	} else {
 		printf(1, "MLfQ(%s), cnt : %d\n",
@@ -135,15 +135,15 @@ main(int argc, char *argv[])
 		/* Process scheduled by Stride scheduler, use 15% of CPU resources */
 		{test_stride, 15},
 		{test_stride, 10},
+		{test_stride, 1},
+		{test_mlfq, MLFQ_YIELD},
+		{test_mlfq, MLFQ_LEVCNT_YIELD},
 		{test_stride, 20},
 		{test_mlfq, MLFQ_NONE},
-		{test_mlfq, MLFQ_NONE},
-		{test_stride, 30},
-		{test_mlfq, MLFQ_NONE},
 		/* Process scheduled by MLFQ scheduler, does not yield itself */
 		{test_mlfq, MLFQ_LEVCNT},
 		/* Process scheduled by MLFQ scheduler, does not yield itself */
-		{test_mlfq, MLFQ_LEVCNT},
+		{test_mlfq, MLFQ_NONE},
 	};
 
 	for (i = 0; i < WORKLOAD_NUM; i++) {

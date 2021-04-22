@@ -6,6 +6,32 @@
 #include "x86.h"
 #include "proc.h"
 
+struct q_node* queue_newNode(int processid)
+{
+	struct q_node* temp = (struct q_node*)kalloc();
+	temp->pid = processid;
+	temp->tickCount = 0;
+	temp->tickets = 0;
+	temp->turnCount = 0;
+	temp->distance = 0;
+	temp->next = 0;
+	temp->isRunnable = 1;
+	return temp;
+}
+
+struct q_header* queue_newHeader(int t)
+{
+	struct q_header* temp = (struct q_header*)kalloc();
+	temp->type = t;
+	temp->next = 0;
+	return temp;
+}
+
+void queue_freeNode(struct q_node* node)
+{
+	kfree((char*)node);
+}
+
 int queue_push(struct q_header* header, struct q_node* node)
 {
 	//printf("push called\n");
@@ -14,7 +40,7 @@ int queue_push(struct q_header* header, struct q_node* node)
 	} else if(header->type == QUEUE_STRIDE){
 		struct q_node* temp = header->next;
 		if(temp->distance > node->distance) {
-			node->next = temp;
+			node->next = header->next;
 			header->next = node;
 		}else {
 			while( temp->next != 0 ) {
@@ -31,20 +57,22 @@ int queue_push(struct q_header* header, struct q_node* node)
 			temp = temp->next;		
 		}
 		temp->next = node;
-		node->next = 0;
 	}
 	return 0;
 }
 
 struct q_node* queue_pop(struct q_header* header)
 {
+	// cprintf("pop called\n");
 	struct q_node* temp = 0;
 	if(!queue_isEmpty(header)){
 		temp = header->next;
+		// cprintf("pop called 2\n");
 		if(temp != 0){ 
 			header->next = temp->next;
 			temp->next = 0;
-		}
+			//printf("pop called 3\n");
+		} //else printf("pop called 4\n");
 	}
 	
 	return temp;
@@ -94,7 +122,7 @@ int queue_findPid(struct q_header* header, int p)
 {
 	struct q_node* temp = header->next;
 	while(temp != 0){
-		if(temp->proc->pid == p){
+		if(temp->pid == p){
 			return 1;
 		}
 	}

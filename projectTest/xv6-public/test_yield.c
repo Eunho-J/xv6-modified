@@ -10,19 +10,23 @@ main(int argc, char *argv[])
 
 	if(childPid == 0) //Child process
 	{
-		while(loopCount++ < 100)
-		{
-			yield();
-			printf(1,"Child\n");
+		int temp=set_cpu_share(20);
+		if(temp == 0){
+			printf(1,"set cpu share!\n");
+			while(loopCount++ < 20)
+			{
+				printf(1,"Child %d\n", loopCount);
+				yield();
+			}
 		}
 		exit();
 	} 
 	else if (childPid > 0) //Parent process
 	{
-		while(loopCount++ < 100)
+		while(loopCount++ < 20)
 		{
+			printf(1,"Parent %d\n",loopCount);
 			yield();
-			printf(1,"Parent\n");
 		}
 		wait();
 	} else

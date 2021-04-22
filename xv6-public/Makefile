@@ -29,7 +29,6 @@ OBJS = \
 	vm.o\
 	prac_syscall.o\
 	ppid_syscall.o\
-	priority_queue.o\
 	
 # Cross-compiling (e.g., on Mac OS X)
 # TOOLPREFIX = i386-jos-elf

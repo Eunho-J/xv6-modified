@@ -13,6 +13,7 @@ struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
+uint ticks_checker;
 
 void
 tvinit(void)
@@ -41,6 +42,10 @@ trap(struct trapframe *tf)
       exit();
     myproc()->tf = tf;
     syscall();
+    if (tf->eax == 13 || tf->eax == 24) // if process called yield/sleep itself
+    { // adjust ticks_checker when process runs again because it starts from here.
+      ticks_checker = ticks;
+    }
     if(myproc()->killed)
       exit();
     return;
@@ -102,9 +107,41 @@ trap(struct trapframe *tf)
 
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
-  if(myproc() && myproc()->state == RUNNING &&
-     tf->trapno == T_IRQ0+IRQ_TIMER)
-    yield();
+  if(myproc() && myproc()->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER) {
+      if( myproc()->p_node.level == LEVEL_MLFQ_0 )
+      {
+        yield();
+        ticks_checker = ticks;
+      }
+      else if (myproc()->p_node.level == LEVEL_MLFQ_1)
+      {
+        if (ticks - ticks_checker >= 2)
+        {
+          yield();
+          ticks_checker = ticks;
+        }
+      }
+      else if (myproc()->p_node.level == LEVEL_MLFQ_2)
+      {
+        if (ticks - ticks_checker >= 4)
+        {
+          yield();
+          ticks_checker = ticks;
+        }
+      }
+      else if (myproc()->p_node.level == LEVEL_STRIDE)
+      {
+        if (ticks - ticks_checker >= 4)
+        {
+          yield();
+          ticks_checker = ticks;
+        }
+      }
+      else
+        panic("process level inavailable");
+      // cprintf("--[yield fin]--\n");
+      
+  }
 
   // Check if the process has been killed since we yielded
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
