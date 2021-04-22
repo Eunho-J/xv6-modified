@@ -318,6 +318,12 @@ exit(void)
 
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
+  if (curproc->p_node.level == LEVEL_STRIDE)
+  {
+    shareleft = shareleft + curproc->p_node.share;
+    curproc->p_node.share = 0;
+  }
+  
   sched();
   panic("zombie exit");
 }
