@@ -11,7 +11,6 @@ struct q_node {
 	int share;
 	int level;
 	uint turnCount;
-	uint tickCount;
 	float distance;
 	struct proc* proc;
 	struct q_node* next;
