@@ -436,7 +436,7 @@ scheduler(void)
     acquire(&ptable.lock);
 
     // prevent buffer overflow of distances
-    if (stride.next->distance > 99 ) // means every node in stride has about 100 - shareleft distance
+    if (stride.next->distance > 199 ) // means every node in stride has about 200 - at least 2 loops
     {
       // reset all distance of stride processes to prevent buffer overflow.
       for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
