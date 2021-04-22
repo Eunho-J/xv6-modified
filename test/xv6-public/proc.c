@@ -447,6 +447,8 @@ scheduler(void)
           p->p_node.distance = 0;
         }
       }
+      mlfq_as_proc.turnCount = 0;
+      mlfq_as_proc.distance = 0;
       p = 0;
     }
 
@@ -795,6 +797,8 @@ set_cpu_share(int share)
       temp->p_node.distance = 0;
     }
   }
+  mlfq_as_proc.turnCount = 0;
+  mlfq_as_proc.distance = 0;
   
   release(&ptable.lock);
   return 0;
