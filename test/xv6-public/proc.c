@@ -435,7 +435,7 @@ scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
 
-    prevent buffer overflow of distances
+    // prevent buffer overflow of distances
     if (stride.next->distance > 99 ) // means every node in stride has about 100 - shareleft distance
     {
       // reset all distance of stride processes to prevent buffer overflow.
