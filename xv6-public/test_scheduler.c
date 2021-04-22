@@ -12,7 +12,7 @@
 
 #define MLFQ_LEVEL		(3)	/* Number of level(priority) of MLFQ scheduler */
 
-#define WORKLOAD_NUM	(60) /* The number of workloads */
+#define WORKLOAD_NUM	(10) /* The number of workloads */
 
 /**
  * This function requests portion of CPU resources with given parameter
@@ -130,65 +130,19 @@ main(int argc, char *argv[])
 
 	/* Workload list */
 	struct workload workloads[WORKLOAD_NUM] = {
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 1},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
-		{test_stride, 2},
+		/* Process scheduled by Stride scheduler, use 5% of CPU resources */
+		{test_stride, 5},
+		/* Process scheduled by Stride scheduler, use 15% of CPU resources */
+		{test_stride, 15},
+		{test_stride, 10},
+		{test_stride, 20},
 		{test_mlfq, MLFQ_NONE},
 		{test_mlfq, MLFQ_NONE},
+		{test_stride, 30},
+		{test_mlfq, MLFQ_NONE},
+		/* Process scheduled by MLFQ scheduler, does not yield itself */
 		{test_mlfq, MLFQ_LEVCNT},
+		/* Process scheduled by MLFQ scheduler, does not yield itself */
 		{test_mlfq, MLFQ_LEVCNT},
 	};
 
