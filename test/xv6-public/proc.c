@@ -374,47 +374,40 @@ void
 priority_boost(void)
 {
   // bpriority boost of mlfq queues.
-  struct proc* p;
-  mlfq_0.next = 0;
-  mlfq_1.next = 0;
-  mlfq_2.next = 0;
+  struct q_node* q;
 
+  q = queue_popall(&mlfq_1);
+  queue_pushall(&mlfq_0, q);
+  q = mlfq_0.next;
+  while (q != 0)
+  {
+    q->level = LEVEL_MLFQ_0;
+    q->turnCount = 0;
+    q = q->next;
+  }
+  q = queue_popall(&mlfq_2);
+  queue_pushall(&mlfq_1, q);
+  q = mlfq_1.next;
+  while (q != 0)
+  {
+    q->level = LEVEL_MLFQ_1;
+    q->turnCount = 0;
+    q = q->next;
+  }
+  
+  struct proc *p;
   for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
   {
-    if (p->state == RUNNABLE || p->state == SLEEPING)
+    if (p->state == RUNNING)
     {
-      if (p->p_node.level == LEVEL_MLFQ_0)
-      {
-        p->p_node.turnCount = 0;
-        p->p_node.next = 0;
-        p->p_node.level = LEVEL_MLFQ_0;
-        queue_push(&mlfq_0,&(p->p_node));
-      }
-      else if (p->p_node.level == LEVEL_MLFQ_1)
-      {
-        p->p_node.turnCount = 0;
-        p->p_node.next = 0;
-        p->p_node.level = LEVEL_MLFQ_0;
-        queue_push(&mlfq_0,&(p->p_node));
-      }
-      else if (p->p_node.level == LEVEL_MLFQ_2)
-      {
-        p->p_node.turnCount = 0;
-        p->p_node.next = 0;
-        p->p_node.level = LEVEL_MLFQ_1;
-        queue_push(&mlfq_1,&(p->p_node));
-      }
-    }
-    else if (p->state == RUNNING)
-    {
-      p->p_node.turnCount = 1;
-      p->p_node.next = 0;
+      p->p_node.turnCount = 0;
       if (p->p_node.level > LEVEL_MLFQ_0)
       {
-        p->p_node.level = p->p_node.level - 1;
+        p->p_node.level--;
       }
     }
   }
+  
 }
 
 //PAGEBREAK: 42
