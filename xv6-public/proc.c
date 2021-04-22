@@ -435,22 +435,22 @@ scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
 
-    // prevent buffer overflow of distances
-    if (stride.next->distance > 199 ) // means every node in stride has about 200 - at least 2 loops
-    {
-      // reset all distance of stride processes to prevent buffer overflow.
-      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-      {
-        if (p->p_node.level == LEVEL_STRIDE)
-        {
-          p->p_node.turnCount = 0;
-          p->p_node.distance = 0;
-        }
-      }
-      mlfq_as_proc.turnCount = 0;
-      mlfq_as_proc.distance = 0;
-      p = 0;
-    }
+    // // prevent buffer overflow of distances
+    // if (stride.next->distance > 199 ) // means every node in stride has about 200 - at least 2 loops
+    // {
+    //   // reset all distance of stride processes to prevent buffer overflow.
+    //   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    //   {
+    //     if (p->p_node.level == LEVEL_STRIDE)
+    //     {
+    //       p->p_node.turnCount = 0;
+    //       p->p_node.distance = 0;
+    //     }
+    //   }
+    //   mlfq_as_proc.turnCount = 0;
+    //   mlfq_as_proc.distance = 0;
+    //   p = 0;
+    // }
 
     if ((node = queue_pop(&stride)) == 0)
     {
