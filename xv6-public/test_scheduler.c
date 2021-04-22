@@ -12,7 +12,7 @@
 
 #define MLFQ_LEVEL		(3)	/* Number of level(priority) of MLFQ scheduler */
 
-#define WORKLOAD_NUM	(49) /* The number of workloads */
+#define WORKLOAD_NUM	(48) /* The number of workloads */
 
 /**
  * This function requests portion of CPU resources with given parameter
@@ -178,7 +178,7 @@ main(int argc, char *argv[])
 		{test_stride, 2},
 		{test_stride, 2},
 		{test_stride, 2},
-		{test_mlfq, MLFQ_NONE},
+		// {test_mlfq, MLFQ_NONE},
 	};
 
 	for (i = 0; i < WORKLOAD_NUM; i++) {
