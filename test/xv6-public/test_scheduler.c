@@ -136,12 +136,12 @@ main(int argc, char *argv[])
 		{test_stride, 15},
 		{test_stride, 10},
 		{test_stride, 20},
-		{test_mlfq, MLFQ_LEVCNT_YIELD},
-		{test_mlfq, MLFQ_LEVCNT},
+		{test_mlfq, MLFQ_NONE},
+		{test_mlfq, MLFQ_NONE},
 		{test_stride, 20},
 		{test_mlfq, MLFQ_NONE},
 		/* Process scheduled by MLFQ scheduler, does not yield itself */
-		{test_mlfq, MLFQ_LEVCNT_YIELD},
+		{test_mlfq, MLFQ_LEVCNT},
 		/* Process scheduled by MLFQ scheduler, does not yield itself */
 		{test_mlfq, MLFQ_LEVCNT},
 	};
