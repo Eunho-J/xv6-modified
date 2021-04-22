@@ -441,39 +441,21 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    //   if(p->state != RUNNABLE)
-    //     continue;
-
-    //   // Switch to chosen process.  It is the process's job
-    //   // to release ptable.lock and then reacquire it
-    //   // before jumping back to us.
-    //   c->proc = p;
-    //   switchuvm(p);
-    //   p->state = RUNNING;
-
-    //   swtch(&(c->scheduler), p->context);
-    //   switchkvm();
-
-    //   // Process is done running for now.
-    //   // It should have changed its p->state before coming back.
-    //   c->proc = 0;
-    // }
 
     // prevent buffer overflow of distances
-    if (stride.next->distance > 99 ) // means every node in stride has about 100 - shareleft distance
-    {
-      // reset all distance of stride processes to prevent buffer overflow.
-      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-      {
-        if (p->p_node.level == LEVEL_STRIDE)
-        {
-          p->p_node.turnCount = 0;
-          p->p_node.distance = 0;
-        }
-      }
-      p = 0;
-    }
+    // if (stride.next->distance > 99 ) // means every node in stride has about 100 - shareleft distance
+    // {
+    //   // reset all distance of stride processes to prevent buffer overflow.
+    //   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    //   {
+    //     if (p->p_node.level == LEVEL_STRIDE)
+    //     {
+    //       p->p_node.turnCount = 0;
+    //       p->p_node.distance = 0;
+    //     }
+    //   }
+    //   p = 0;
+    // }
 
     if ((node = queue_pop(&stride)) == 0)
     {
