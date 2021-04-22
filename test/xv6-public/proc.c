@@ -568,7 +568,7 @@ scheduler(void)
       }
 
       node->turnCount++;
-      node->distance = node->turnCount * (100 - shareleft) / node->share;
+      node->distance = node->turnCount * 100 / node->share;
 
       p = node->proc;
       c->proc = p;
