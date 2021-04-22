@@ -53,7 +53,6 @@ queue_init(void)
   mlfq_as_proc.level = LEVEL_MLFQ_AS_PROC;
   mlfq_as_proc.share = 20;
   mlfq_as_proc.turnCount = 0;
-  mlfq_as_proc.tickCount = 0;
   mlfq_as_proc.distance = 0;
   mlfq_as_proc.proc = 0;
   mlfq_as_proc.next = 0;
@@ -157,7 +156,6 @@ found:
   p->p_node.next = 0;
   p->p_node.share = 0;
   p->p_node.turnCount = 0;
-  p->p_node.tickCount = 0;
   p->p_node.distance = 0;
   p->p_node.level = 0;
 
@@ -462,32 +460,31 @@ scheduler(void)
     //   c->proc = 0;
     // }
 
-    if ((node = queue_pop(&stride)) == 0)
-    {
-      panic("stride is empty!\n");
-    }
-
     // prevent buffer overflow of distances
-    if (node->distance > 99 - shareleft) // means every node in stride has about 100 - shareleft distance
+    if (stride.next->distance > 99 ) // means every node in stride has about 100 - shareleft distance
     {
       // reset all distance of stride processes to prevent buffer overflow.
       for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
       {
         if (p->p_node.level == LEVEL_STRIDE)
         {
-          p->p_node.tickCount = 0;
           p->p_node.turnCount = 0;
           p->p_node.distance = 0;
         }
       }
       p = 0;
     }
+
+    if ((node = queue_pop(&stride)) == 0)
+    {
+      panic("stride is empty!\n");
+    }
     
     
     if(node->level == LEVEL_MLFQ_AS_PROC)
     {
       mlfq_as_proc.turnCount++;
-      mlfq_as_proc.distance = mlfq_as_proc.turnCount * (100 - shareleft) / mlfq_as_proc.share;
+      mlfq_as_proc.distance = mlfq_as_proc.turnCount * 100 / mlfq_as_proc.share;
       queue_push(&stride, &mlfq_as_proc);
       for (int i = 0; i < 4;)
       {
@@ -564,7 +561,7 @@ scheduler(void)
           else if (p->p_node.level == LEVEL_STRIDE)
           {
             p->p_node.turnCount++; // since set_cpu_share() called, turnCount is reset to 0.
-            p->p_node.distance = p->p_node.turnCount * (100 - shareleft) / p->p_node.share;
+            p->p_node.distance = p->p_node.turnCount * 100 / p->p_node.share;
             queue_push(&stride,&(p->p_node));
           }
           else
@@ -819,7 +816,6 @@ set_cpu_share(int share)
   {
     if (temp->p_node.level == LEVEL_STRIDE)
     {
-      temp->p_node.tickCount = 0;
       temp->p_node.turnCount = 0;
       temp->p_node.distance = 0;
     }
