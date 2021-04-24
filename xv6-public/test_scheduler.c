@@ -12,7 +12,7 @@
 
 #define MLFQ_LEVEL		(3)	/* Number of level(priority) of MLFQ scheduler */
 
-#define WORKLOAD_NUM	(5) /* The number of workloads */
+#define WORKLOAD_NUM	(4) /* The number of workloads */
 
 /**
  * This function requests portion of CPU resources with given parameter
@@ -33,15 +33,15 @@ test_stride(int portion)
 	}
 
 
-	if (set_cpu_share(20) != 0)
-	{
-		printf(1, "FAIL : set portion to 20\n");
-	}
-	else
-	{
-		printf(1, "SUCCESS: go back to mlfq\n");
-		printf(1, "STRIDE SET TO PORTION 20(%d%%), cnt : %d\n", portion, cnt);
-	}
+	// if (set_cpu_share(20) != 0)
+	// {
+	// 	printf(1, "FAIL : set portion to 20\n");
+	// }
+	// else
+	// {
+	// 	printf(1, "SUCCESS: go back to mlfq\n");
+	// 	printf(1, "STRIDE SET TO PORTION 20(%d%%), cnt : %d\n", portion, cnt);
+	// }
 	
 	
 
@@ -147,7 +147,6 @@ main(int argc, char *argv[])
 		{test_stride, 60},
 		{test_stride, 15},
 		{test_stride, 5},
-		{test_mlfq, MLFQ_LEVCNT},
 		{test_mlfq, MLFQ_LEVCNT},
 	};
 
