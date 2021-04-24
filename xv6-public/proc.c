@@ -580,7 +580,16 @@ scheduler(void)
 
       if (p->state == RUNNABLE || p->state == SLEEPING)
       {
-        queue_push(&stride, &(p->p_node));
+        // if set_cpu_share(0) called, process goes to MLFQ_0.
+        if (p->p_node.level == LEVEL_MLFQ_0)
+        {
+          queue_push(&mlfq_0,&(p->p_node));
+        } // else, process remains in STRIDE.
+        else if (p->p_node.level == LEVEL_STRIDE)
+        {
+          queue_push(&stride, &(p->p_node));
+        }
+        
       }
 
       c->proc = 0;
@@ -778,31 +787,70 @@ int
 set_cpu_share(int share)
 {
   acquire(&ptable.lock);
-  if( shareleft < share || share <= 0) {
+  struct proc *curproc = myproc();
+  struct proc *temp;
+  if (share < 0)
+  {
     release(&ptable.lock);
     return -1;
   }
-  struct proc *curproc = myproc();
-  struct proc *temp;
   
-  curproc->p_node.level = -1;
-  shareleft = shareleft - share;
-  curproc->p_node.share = share;
-  
-  // reset distance of all stride processes
-  for (temp = ptable.proc; temp < &ptable.proc[NPROC]; temp++)
+  if(curproc->p_node.level >= LEVEL_MLFQ_0)
   {
-    if (temp->p_node.level == LEVEL_STRIDE)
+    if( shareleft < share || share == 0) {
+      release(&ptable.lock);
+      return -1;
+    }
+    curproc->p_node.level = LEVEL_STRIDE;
+    shareleft = shareleft - share;
+    curproc->p_node.share = share;
+    
+    // reset distance of all stride processes
+    for (temp = ptable.proc; temp < &ptable.proc[NPROC]; temp++)
     {
-      temp->p_node.turnCount = 0;
-      temp->p_node.distance = 0;
+      if (temp->p_node.level == LEVEL_STRIDE)
+      {
+        temp->p_node.turnCount = 0;
+        temp->p_node.distance = 0;
+      }
+    }
+    mlfq_as_proc.turnCount = 0;
+    mlfq_as_proc.distance = 0;
+    
+    release(&ptable.lock);
+    return 0;
+  }
+  else if(curproc->p_node.level == LEVEL_STRIDE)
+  {
+    if (share == 0)
+    {
+      shareleft = shareleft + curproc->p_node.share;
+      curproc->p_node.share = 0;
+      curproc->p_node.level = LEVEL_MLFQ_0;
+      curproc->p_node.turnCount = 0;
+      curproc->p_node.distance = 0;
+      release(&ptable.lock);
+      return 0;
+    }
+    else if (shareleft + curproc->p_node.share >= share)
+    {
+      shareleft = shareleft + curproc->p_node.share - share;
+      curproc->p_node.share = share;
+      release(&ptable.lock);
+      return 0;
+    }
+    else
+    {
+      release(&ptable.lock);
+      return -1;
     }
   }
-  mlfq_as_proc.turnCount = 0;
-  mlfq_as_proc.distance = 0;
+  else
+  {
+    panic("set_cpu_share: not matching level!");
+  }
   
-  release(&ptable.lock);
-  return 0;
+  return -1;
 }
 
 int 
