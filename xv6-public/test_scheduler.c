@@ -26,7 +26,6 @@ test_stride(int portion)
 	int i = 0;
 	int start_tick;
 	int curr_tick;
-	int gobackCalled = 0;
 
 	if (set_cpu_share(portion) != 0) {
 		printf(1, "FAIL : set_cpu_share\n");
@@ -37,12 +36,10 @@ test_stride(int portion)
 	if (set_cpu_share(0) != 0)
 	{
 		printf(1, "FAIL : go back to mlfq\n");
-		gobackCalled = 1;
 	}
 	else
 	{
 		printf(1, "SUCCESS: go back to mlfq\n");
-		gobackCalled = 1;
 		printf(1, "STRIDE TO MLFQ(%d%%), cnt : %d\n", portion, cnt);
 	}
 	
