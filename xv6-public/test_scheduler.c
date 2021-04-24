@@ -147,7 +147,7 @@ main(int argc, char *argv[])
 		{test_stride, 60},
 		{test_stride, 15},
 		{test_stride, 5},
-		{test_mlfq, MLFQ_LEVCNT},
+		{test_mlfq, MLFQ_NONE},
 	};
 
 	for (i = 0; i < WORKLOAD_NUM; i++) {
