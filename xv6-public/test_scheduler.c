@@ -33,6 +33,22 @@ test_stride(int portion)
 		return;
 	}
 
+
+	if (set_cpu_share(0) != 0)
+	{
+		printf(1, "FAIL : go back to mlfq\n");
+		gobackCalled = 1;
+	}
+	else
+	{
+		printf(1, "SUCCESS: go back to mlfq\n");
+		gobackCalled = 1;
+		printf(1, "STRIDE TO MLFQ(%d%%), cnt : %d\n", portion, cnt);
+	}
+	
+	
+
+
 	/* Get start tick */
 	start_tick = uptime();
 
@@ -44,24 +60,6 @@ test_stride(int portion)
 
 			/* Get current tick */
 			curr_tick = uptime();
-
-			if (!gobackCalled && curr_tick - start_tick > LIFETIME / 2)
-			{
-				if (set_cpu_share(0) != 0)
-				{
-					printf(1, "FAIL : go back to mlfq\n");
-					gobackCalled = 1;
-				}
-				else
-				{
-					printf(1, "SUCCESS: go back to mlfq\n");
-					gobackCalled = 1;
-					printf(1, "STRIDE(%d%%), cnt : %d\n", portion, cnt);
-				}
-				
-				
-			}
-			
 
 			if (curr_tick - start_tick > LIFETIME) {
 				/* Time to terminate */
