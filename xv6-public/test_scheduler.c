@@ -44,6 +44,22 @@ test_stride(int portion)
 			/* Get current tick */
 			curr_tick = uptime();
 
+			if (curr_tick - start_tick == LIFETIME / 2)
+			{
+				if (set_cpu_share(0) != 0)
+				{
+					printf(1, "FAIL : go back to mlfq\n");
+					return;
+				}
+				else
+				{
+					printf(1, "SUCCESS: go back to mlfq\n");
+				}
+				
+				
+			}
+			
+
 			if (curr_tick - start_tick > LIFETIME) {
 				/* Time to terminate */
 				break;
