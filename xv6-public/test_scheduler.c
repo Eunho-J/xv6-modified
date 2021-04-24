@@ -56,6 +56,7 @@ test_stride(int portion)
 				{
 					printf(1, "SUCCESS: go back to mlfq\n");
 					gobackCalled = 1;
+					printf(1, "STRIDE(%d%%), cnt : %d\n", portion, cnt);
 				}
 				
 				
