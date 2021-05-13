@@ -1,3 +1,30 @@
+// #include "priority_queue.h"
+#define QUEUE_MLFQ			      0
+#define QUEUE_STRIDE		      1
+#define QUEUE_THREADS         2
+#define LEVEL_MLFQ_0          0
+#define LEVEL_MLFQ_1          1
+#define LEVEL_MLFQ_2          2
+#define LEVEL_STRIDE          -1
+#define LEVEL_MLFQ_AS_PROC    -2
+
+struct q_node {
+	int share;
+	int level;
+	uint turnCount;
+	float distance;
+  struct thread* thread;
+	struct proc* proc;
+	struct q_node* next;
+};
+
+struct q_header {
+	int type;
+	int level;
+	struct q_node* next;
+};
+
+
 // Per-CPU state
 struct cpu {
   uchar apicid;                // Local APIC ID
@@ -32,7 +59,29 @@ struct context {
   uint eip;
 };
 
+
+
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+
+struct thread
+{
+  thread_t tid;
+  struct proc *mp;             // Master process of the thread
+  enum procstate state;      // Thread state
+  void *chan;                  // If non-zero, sleeping on chan  // TODO: thread 
+  void *retval;                // return value of thread
+
+  struct q_node t_node;        // process node for scheduling queue
+
+  // ! values that need to be copied from proc when thread switch
+  char *kstack;                // Bottom of kernel stack for this thread
+  uint sz;                     // Size of thread memory (bytes)
+  struct trapframe *tf;        // Trap frame for current syscall
+  struct context *context;     // swtch() here to run process or thread
+  struct file *ofile[NOFILE];  // Open files
+  struct inode *cwd;           // Current directory
+};
+
 
 // Per-process state
 struct proc {
@@ -49,10 +98,13 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  // uint turnCount;			   // Used for scheduling: MLFQ:count for 5(0)&10(1)&over(2) / Stride:calculate distance 
-  // uint tickets;				   // If 0, proc is in MLFQ. else, proc is in Stride with cpu_share(tickets)
-  // uint tickCount;			   // Used for checking wheather turn is over or not
-  struct q_node* p_node; // Used for find Node of the process
+
+  struct q_node p_node;        // process node for scheduling queue
+
+  struct thread *pastthread;   // last runned thread on the process
+  struct thread *mt;           // master thread of the process
+  int nthread;                 // number of threads in the process
+  struct q_header threads;     // queue of threads in the process
 };
 
 // Process memory is laid out contiguously, low addresses first:

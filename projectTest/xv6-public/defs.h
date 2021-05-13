@@ -11,6 +11,7 @@ struct stat;
 struct superblock;
 struct q_node;
 struct q_header;
+struct thread;
 
 // bio.c
 void            binit(void);
@@ -113,6 +114,7 @@ int             kill(int);
 struct cpu*     mycpu(void);
 struct proc*    myproc();
 void            pinit(void);
+void            queue_init(void);
 void            procdump(void);
 void            scheduler(void) __attribute__((noreturn));
 void            sched(void);
@@ -122,13 +124,22 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
-void            yield2(void);
+void            switchthread(void);
 void            priority_boost(void);
 int             set_cpu_share(int);
-int             getlev(void);
-extern uint     mlfq_tickCount;
-extern int      sysyield_called;
-extern int      remaining_tickets;
+int             getlev(int);
+int             thread_create(thread_t*, void* (*start_routine)(void *), void*);
+void            thread_exit(void*);
+int             thread_join(thread_t, void**);
+//priority_queue
+int						queue_push(struct q_header*, struct q_node*);
+struct q_node*			queue_pop(struct q_header*);
+struct q_node*			queue_popall(struct q_header*);
+int						queue_pushall(struct q_header*, struct q_node*);
+int                     queue_hasRunnable(struct q_header*);
+void                    queue_freeNode(struct q_node*);
+int                     queue_findPid(struct q_header*, int);
+
 
 // swtch.S
 void            swtch(struct context**, struct context*);
@@ -171,6 +182,7 @@ void            timerinit(void);
 // trap.c
 void            idtinit(void);
 extern uint     ticks;
+extern uint     ticks_checker;
 void            tvinit(void);
 extern struct spinlock tickslock;
 
@@ -200,17 +212,7 @@ int				printk_str(char*);
 //ppid_syscall.c
 int				getppid(void);
 
-//priority_queue.c
-struct q_node*			queue_newNode(int);
-struct q_header*		queue_newHeader(int);
-int						queue_push(struct q_header*, struct q_node*);
-struct q_node*			queue_pop(struct q_header*);
-struct q_node*			queue_popall(struct q_header*);
-int						queue_pushall(struct q_header*, struct q_node*);
-int						queue_isEmpty(struct q_header*);
-int                     queue_resetTickCount(struct q_header*);
-void                    queue_freeNode(struct q_node*);
-int                     queue_findPid(struct q_header*, int);
+
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

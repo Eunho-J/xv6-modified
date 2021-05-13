@@ -93,19 +93,7 @@ sys_uptime(void)
 int
 sys_yield(void)
 {
-	yield2();
-
-	//uint ticks0;
-	//acquire(&tickslock);
-	//ticks0=ticks;
-	//while(ticks-ticks0 == 0){
-	//	if(myproc()->killed){
-	//		release(&tickslock);
-	//		return -1;
-	//	}
-	//	yield2(&ticks, &tickslock);
-	//}
-	//release(&tickslock);
+	yield();
 	return 0;
 }
 
@@ -116,11 +104,61 @@ sys_set_cpu_share(void)
 
   if(argint(0, &n) < 0)
     return -1;
-  return !set_cpu_share(n);
+  return set_cpu_share(n);
 }
 
 int
 sys_getlev(void)
 {
-  return getlev();
+  return myproc()->p_node.level;
+}
+
+int
+sys_thread_create(void)
+{
+  int thread, routine, arg;
+  //void* (*routine_p)(void*);
+
+  if(argint(0, &thread) < 0)
+    return -1;
+
+  if(argint(1, &routine) < 0)
+    return -1;
+
+  if(argint(2, &arg) < 0)
+    return -1;
+
+  //routine_p = (void*)routine;
+  cprintf("sys_thread_create\n");
+  return thread_create((thread_t*)thread, (void*)routine, (void*)arg);
+}
+
+int
+sys_thread_exit(void)
+{
+  int retval;
+
+  if(argint(0, &retval) < 0)
+    return -1;
+
+  thread_exit((void*)retval);
+  return 0;
+}
+
+int
+sys_thread_join(void)
+{
+  int thread, retval;
+  if(argint(0, &thread) < 0)
+    return -1;
+  if(argint(1, &retval) < 0)
+    return -1;
+
+  return thread_join((thread_t)thread, (void**)retval);
+}
+
+int
+sys_gettid(void)
+{
+  return myproc()->pastthread->tid;
 }
