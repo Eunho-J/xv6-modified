@@ -993,8 +993,8 @@ thread_create(thread_t* thread, void* (*start_routine)(void *), void* arg)
 
   for(i = 0; i < NOFILE; i++)
     if(curmaster->ofile[i])
-      nt->ofile[i] = filedup(curmaster->ofile[i]);
-  nt->cwd = idup(curmaster->cwd);  
+      nt->ofile[i] = curmaster->ofile[i];
+  nt->cwd = curmaster->cwd;  
 
 
   safestrcpy(nt->name, curmaster->name, sizeof(curmaster->name));
@@ -1018,6 +1018,7 @@ thread_create(thread_t* thread, void* (*start_routine)(void *), void* arg)
   curmaster->nthread++;
   nt->state = RUNNABLE;
   queue_push(&mlfq_0, &(nt->p_node));
+  //TODO: time share between LWPs
   release(&ptable.lock);
   return 0;
 
@@ -1046,21 +1047,14 @@ thread_exit(void* retval)
   // Close all open files.
   for(fd = 0; fd < NOFILE; fd++){
     if(curthread->ofile[fd]){
-      fileclose(curthread->ofile[fd]);
       curthread->ofile[fd] = 0;
     }
   }
 
-  begin_op();
-  iput(curthread->cwd);
-  end_op();
   curthread->cwd = 0;
-  curthread->nthread--;
+  curthread->master->nthread--;
 
   acquire(&ptable.lock);
-
-
-
 
   curthread->ret_val = retval;
   
@@ -1081,6 +1075,7 @@ master:
         kfree(temp->kstack);
         temp->kstack = 0;
         temp->state = UNUSED;
+        temp->cwd = 0;
         temp->master->bl.blanklist[temp->master->bl.cnt] = temp->tsb;
         temp->master->bl.cnt++;
         deallocuvm(temp->pgdir, temp->sz, temp->tsb);
@@ -1132,6 +1127,7 @@ thread_join(thread_t thread, void** retval)
         kfree(p->kstack);
         p->kstack = 0;
         p->state = UNUSED;
+        p->cwd = 0;
         p->master->bl.blanklist[p->master->bl.cnt] = p->tsb;
         p->master->bl.cnt++;
         deallocuvm(p->pgdir, p->sz, p->tsb);

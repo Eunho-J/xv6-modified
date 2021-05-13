@@ -79,6 +79,8 @@ struct proc {
   int killed;                  // If non-zero, have been killed
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
+  struct file *tempofile[NOFILE];
+  struct inode *tempcwd;           // Current directory
   char name[16];               // Process name (debugging)
 
   thread_t tid;                // Thread ID
