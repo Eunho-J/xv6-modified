@@ -1096,7 +1096,7 @@ master:
     goto master;
   }
   release(&ptable.lock);
-  return;
+  exit();
 }
 
 int
