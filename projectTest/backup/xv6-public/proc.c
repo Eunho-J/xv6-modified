@@ -1018,6 +1018,7 @@ thread_create(thread_t* thread, void* (*start_routine)(void *), void* arg)
   curmaster->nthread++;
   nt->state = RUNNABLE;
   queue_push(&mlfq_0, &(nt->p_node));
+  //TODO: time share between LWPs
   release(&ptable.lock);
   return 0;
 
@@ -1058,9 +1059,6 @@ thread_exit(void* retval)
   curthread->nthread--;
 
   acquire(&ptable.lock);
-
-
-
 
   curthread->ret_val = retval;
   
