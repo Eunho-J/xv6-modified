@@ -1,7 +1,6 @@
 // #include "priority_queue.h"
 #define QUEUE_MLFQ			      0
 #define QUEUE_STRIDE		      1
-#define QUEUE_THREADS         2
 #define LEVEL_MLFQ_0          0
 #define LEVEL_MLFQ_1          1
 #define LEVEL_MLFQ_2          2
@@ -13,7 +12,6 @@ struct q_node {
 	int level;
 	uint turnCount;
 	float distance;
-  struct thread* thread;
 	struct proc* proc;
 	struct q_node* next;
 };
@@ -35,6 +33,7 @@ struct cpu {
   int ncli;                    // Depth of pushcli nesting.
   int intena;                  // Were interrupts enabled before pushcli?
   struct proc *proc;           // The process running on this cpu or null
+  struct thread *thread;       // The thread running on this cpu or null
 };
 
 extern struct cpu cpus[NCPU];
@@ -60,8 +59,20 @@ struct context {
 };
 
 
-
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+
+struct thread {
+  char *t_kstack;
+  enum procstate t_state;
+  thread_t tid;
+  struct proc *master;
+  struct trapframe *t_tf;
+  struct context *t_context;
+  void *t_chan;
+  int t_killed;
+
+  struct q_node t_node;
+}
 
 
 struct blanktsb {
@@ -70,33 +81,16 @@ struct blanktsb {
 };
 
 
-struct thread
-{
-  thread_t tid;
-  uint tsb;                    // thread's stack base point
-  enum procstate state;        // Thread's state
-  void *chan;                  // If non-zero, sleeping on chan  // TODO: thread 
-  void *retval;                // return value of thread
-
-  struct q_node t_node;        // process node for scheduling queue
-
-  // ! values that need to be copied to proc when thread switch
-  char *kstack;                // Bottom of kernel stack for this thread
-  struct trapframe *tf;        // Trap frame for current syscall
-  struct context *context;     // swtch() here to run process or thread
-};
-
-
 // Per-process state
 struct proc {
   uint sz;                     // Size of process memory (bytes)
   pde_t* pgdir;                // Page table
-  char *kstack;                // Bottom of kernel stack for this process
+  // char *kstack;                // Bottom of kernel stack for this process
   enum procstate state;        // Process state
   int pid;                     // Process ID
   struct proc *parent;         // Parent process
-  struct trapframe *tf;        // Trap frame for current syscall
-  struct context *context;     // swtch() here to run process
+  // struct trapframe *tf;        // Trap frame for current syscall
+  // struct context *context;     // swtch() here to run process
   void *chan;                  // If non-zero, sleeping on chan
   int killed;                  // If non-zero, have been killed
   struct file *ofile[NOFILE];  // Open files
@@ -105,9 +99,8 @@ struct proc {
 
   struct q_node p_node;        // process node for scheduling queue
 
-  struct q_node *cur_t_node;   // current running thread's node of this process
-  int nrunnable;                 // number of threads in the process
-  struct q_header threads;     // queue of threads in the process
+  int nrunnablet;              // runnable threads number
+  struct q_header q_thread;
 };
 
 // Process memory is laid out contiguously, low addresses first:

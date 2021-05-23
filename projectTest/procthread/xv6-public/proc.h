@@ -1,7 +1,6 @@
 // #include "priority_queue.h"
 #define QUEUE_MLFQ			      0
 #define QUEUE_STRIDE		      1
-#define QUEUE_THREADS         2
 #define LEVEL_MLFQ_0          0
 #define LEVEL_MLFQ_1          1
 #define LEVEL_MLFQ_2          2
@@ -13,7 +12,6 @@ struct q_node {
 	int level;
 	uint turnCount;
 	float distance;
-  struct thread* thread;
 	struct proc* proc;
 	struct q_node* next;
 };
@@ -59,37 +57,17 @@ struct context {
   uint eip;
 };
 
-
-
-enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
-
-
 struct blanktsb {
   int cnt;
   uint blanklist[NPROC];
 };
 
 
-struct thread
-{
-  thread_t tid;
-  uint tsb;                    // thread's stack base point
-  enum procstate state;        // Thread's state
-  void *chan;                  // If non-zero, sleeping on chan  // TODO: thread 
-  void *retval;                // return value of thread
-
-  struct q_node t_node;        // process node for scheduling queue
-
-  // ! values that need to be copied to proc when thread switch
-  char *kstack;                // Bottom of kernel stack for this thread
-  struct trapframe *tf;        // Trap frame for current syscall
-  struct context *context;     // swtch() here to run process or thread
-};
-
+enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
 struct proc {
-  uint sz;                     // Size of process memory (bytes)
+  uint sz;                     // Size of process memory (bytes) (Same for every LWPs in the same group)
   pde_t* pgdir;                // Page table
   char *kstack;                // Bottom of kernel stack for this process
   enum procstate state;        // Process state
@@ -101,13 +79,20 @@ struct proc {
   int killed;                  // If non-zero, have been killed
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
+  struct file *tempofile[NOFILE];
+  struct inode *tempcwd;           // Current directory
   char name[16];               // Process name (debugging)
 
-  struct q_node p_node;        // process node for scheduling queue
+  thread_t tid;                // Thread ID
+  uint tsb;                    // Stack base point of the thread
+  struct blanktsb bl;          // Blank thread used stack base list(empty spaces for now)
+  struct proc *master;
+  int nthread;
+  void *ret_val;               // Return value of the thread
 
-  struct q_node *cur_t_node;   // current running thread's node of this process
-  int nrunnable;                 // number of threads in the process
-  struct q_header threads;     // queue of threads in the process
+  struct q_header lwps;        // lwp queue of the process
+
+  struct q_node p_node;        // process node for scheduling queue
 };
 
 // Process memory is laid out contiguously, low addresses first:

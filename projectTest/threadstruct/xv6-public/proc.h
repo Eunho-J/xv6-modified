@@ -1,7 +1,6 @@
 // #include "priority_queue.h"
 #define QUEUE_MLFQ			      0
 #define QUEUE_STRIDE		      1
-#define QUEUE_THREADS         2
 #define LEVEL_MLFQ_0          0
 #define LEVEL_MLFQ_1          1
 #define LEVEL_MLFQ_2          2
@@ -13,8 +12,8 @@ struct q_node {
 	int level;
 	uint turnCount;
 	float distance;
-  struct thread* thread;
 	struct proc* proc;
+  struct thread* thread;
 	struct q_node* next;
 };
 
@@ -63,29 +62,29 @@ struct context {
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+struct thread
+{
+  uint t_sb;
+
+  char *t_kstack;
+  enum procstate t_state;//
+  thread_t tid;//
+  struct trapframe *t_tf;//
+  struct context *t_context;//
+  void *chan;
+  int killed;
+
+  struct q_node t_node;
+  struct proc *master;
+
+  void *retval;
+};
+
 
 struct blanktsb {
   int cnt;
   uint blanklist[NPROC];
 };
-
-
-struct thread
-{
-  thread_t tid;
-  uint tsb;                    // thread's stack base point
-  enum procstate state;        // Thread's state
-  void *chan;                  // If non-zero, sleeping on chan  // TODO: thread 
-  void *retval;                // return value of thread
-
-  struct q_node t_node;        // process node for scheduling queue
-
-  // ! values that need to be copied to proc when thread switch
-  char *kstack;                // Bottom of kernel stack for this thread
-  struct trapframe *tf;        // Trap frame for current syscall
-  struct context *context;     // swtch() here to run process or thread
-};
-
 
 // Per-process state
 struct proc {
@@ -105,10 +104,13 @@ struct proc {
 
   struct q_node p_node;        // process node for scheduling queue
 
-  struct q_node *cur_t_node;   // current running thread's node of this process
-  int nrunnable;                 // number of threads in the process
-  struct q_header threads;     // queue of threads in the process
+  int nrunnablethread;         // number of runnable threads
+  struct q_header q_threads;   // queue of threads
+  struct q_node *cur_t_node;   // current running thread's node
+
+  struct blanktsb bl;          // Blank thread used stack base list(empty spaces for now)
 };
+
 
 // Process memory is laid out contiguously, low addresses first:
 //   text
