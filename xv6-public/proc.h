@@ -104,11 +104,9 @@ struct proc {
   struct q_node *t_node;       // current thread node
   int nrt;                     // number of runnable threads
   int nt;
-  uint tssz;
   struct q_header tl;        // list of lwps
   struct blanktsb bl;
   //!=============================
-
 };
 
 // Process memory is laid out contiguously, low addresses first:

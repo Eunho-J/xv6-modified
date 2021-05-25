@@ -129,8 +129,6 @@ allocproc(void)
   struct thread *t;
   char *sp;
 
-  // cprintf("allocproc\n");
-
   acquire(&ptable.lock);
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
@@ -165,7 +163,6 @@ tfound:
 
   p->tl.next = 0;
   p->tl.level = 0;
-  // p->tssz = 0;
   p->tl.type = QUEUE_MLFQ;
 
   t->master = p;
@@ -217,8 +214,6 @@ userinit(void)
 
   p = allocproc();
   t = p->t_node->thread; //first thread
-
-  // cprintf("t %d\n", t);
   
   initproc = p;
   if((p->pgdir = setupkvm()) == 0)
@@ -288,7 +283,6 @@ fork(void)
   struct thread *curthread = mythread();
   struct q_node *temp;
 
-  // cprintf("fork called\n");
 
   // Allocate process.
   if((np = allocproc()) == 0){
@@ -309,7 +303,6 @@ fork(void)
     return -1;
   }
   np->sz = curproc->sz;
-  // np->tssz = curproc->tssz;
   np->parent = curproc;
   np->tl.next = 0;
   *nt->tf = *curthread->tf;
@@ -346,10 +339,8 @@ fork(void)
   
   // Push to mlfq_0 when state changed to RUNNABLE
   queue_push(&mlfq_0, &(np->p_node));
-  // cprintf("forked! %d\n",np->p_node.proc->pid);
 
   release(&ptable.lock);
-  // cprintf("fork fin\n");
 
   return pid;
 }
@@ -361,7 +352,6 @@ void
 exit(void)
 { 
   struct proc *curproc = myproc();
-  // struct thread *curthread = mythread();
   struct proc *p;
   int fd;
 
@@ -417,7 +407,6 @@ wait(void)
   struct proc *curproc = myproc();
   struct thread *tempt;
   struct q_node *tempnode;
-  // cprintf("wait\n");
   
   acquire(&ptable.lock);
   for(;;){
@@ -444,15 +433,12 @@ wait(void)
 
         // Found one.
         pid = p->pid;
-        // kfree(p->kstack);
-        // p->kstack = 0;
         freevm(p->pgdir);
         p->pid = 0;
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
         p->bl.cnt = 0;
-        // p->tssz = 0;
         p->sz = 0;
         p->t_node = 0;
         p->nrt = 0;
@@ -712,7 +698,6 @@ sched(void)
 {
   int intena;
   struct proc *p = myproc();
-  // cprintf("sched\n");
 
   if(!holding(&ptable.lock))
     panic("sched ptable.lock");
@@ -733,9 +718,6 @@ tsched(void)
   struct proc *curproc = myproc();
   struct thread *curthread = mythread();
   struct q_node *newt_node, *oldt_node;
-  // cprintf("tsched\n");
-  //TODO : thread context switch
-  // acquire(&ptable.lock);
 
   
   if(curproc->nrt < 0){
@@ -743,7 +725,6 @@ tsched(void)
   }
   else if (curproc->nrt == 1 && curthread->tstate == RUNNABLE) //if nrt is 1, does not need to switch thread
   {
-    // release(&ptable.lock);
     return;
   }
   
@@ -760,15 +741,12 @@ tsched(void)
   curproc->t_node = newt_node;
   mycpu()->ts.esp0 = (uint)newt_node->thread->kstack + KSTACKSIZE;
   swtch(&oldt_node->thread->context, newt_node->thread->context);
-
-  // release(&ptable.lock);
 }
 
 // Give up the CPU for one scheduling round.
 void
 yield(void)
 {
-  // cprintf("yield\n");
   acquire(&ptable.lock);  //DOC: yieldlock
   myproc()->state = RUNNABLE;
   sched();
@@ -791,7 +769,6 @@ forkret(void)
 {
   static int first = 1;
   // Still holding ptable.lock from scheduler.
-  // cprintf("forkret\n");
   release(&ptable.lock);
 
   if (first) {
@@ -814,7 +791,6 @@ sleep(void *chan, struct spinlock *lk)
 {
   struct proc *p = myproc();
   struct thread *t = mythread();
-  // cprintf("sleep\n");
   
   if(p == 0)
     panic("sleep");
@@ -836,8 +812,6 @@ sleep(void *chan, struct spinlock *lk)
     release(lk);
   }
   // Go to sleep.
-  // p->chan = chan;
-  // p->state = SLEEPING;
   t->chan = chan;
   t->tstate = SLEEPING;
   p->nrt--;
@@ -846,13 +820,11 @@ sleep(void *chan, struct spinlock *lk)
     goto threadsched;
   
   p->state = SLEEPING;
-  // cprintf("no runnable thread caused sleep\n");
   sched();
   if(t->tstate == SLEEPING)
     goto threadsched;
 
   // Tidy up.
-  // p->chan = 0;
   t->chan = 0;
 
   // Reacquire original lock.
@@ -882,12 +854,6 @@ static void
 wakeup1(void *chan)
 {
   struct thread *t;
-  // cprintf("wakeup1\n");
-  // struct proc *p;
-
-  // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-  //   if(p->state == SLEEPING && p->chan == chan)
-  //     p->state = RUNNABLE;
   for(t = ptable.thread; t < &ptable.thread[NTHREAD]; t++)
   {
     if(t->tstate == SLEEPING && t->chan == chan)
@@ -916,14 +882,10 @@ int
 kill(int pid)
 { 
   struct proc *p;
-  // cprintf("kill\n");
   acquire(&ptable.lock);
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid == pid){
       p->killed = 1;
-      // Wake process from sleep if necessary.
-      // if(p->state == SLEEPING)
-      //   p->state = RUNNABLE;
       if(p->nrt == 0)
       {
         p->nrt++;
@@ -1008,7 +970,6 @@ set_cpu_share(int share)
 int 
 queue_push(struct q_header* header, struct q_node* node)
 {
-	//printf("push called\n");
 	if(header->next == 0) {
 		header->next = node;
 	} 
@@ -1157,7 +1118,6 @@ tfound:
 
 
   acquire(&ptable.lock);
-  //! allocproc fin
   if(curproc->bl.cnt == 0)
   {
     sz = curproc->sz;
@@ -1192,7 +1152,6 @@ tfound:
   curproc->nt++;
   t->tstate = RUNNABLE;
   queue_push(&curproc->tl, &t->t_node);
-  // cprintf("tcreated tid %d\n", t->tid);
   release(&ptable.lock);
   return 0;
 
@@ -1213,12 +1172,10 @@ thread_exit(void* retval)
 {
   struct proc *curproc;
   struct thread *curthread;
-  // cprintf("texit!\n");
   acquire(&ptable.lock);
   curproc = myproc();
   curthread = mythread();
 
-  // cprintf("texit p %d t %d\n", curproc->pid, curthread->tid);
   curproc->nt--;
   curproc->nrt--;
   if(curproc->nt < 1)  // this was last thread...
@@ -1227,7 +1184,6 @@ thread_exit(void* retval)
     release(&ptable.lock);
     exit();
   }
-
 
   curthread->ret_val = retval;
   curthread->tstate = ZOMBIE;
@@ -1248,23 +1204,13 @@ int
 thread_join(thread_t thread, void** retval)
 {
   struct thread *t;
-  // struct q_node *t_node;
   struct proc *curproc = myproc();
   int havethreads = 0;
   
   acquire(&ptable.lock);
-  // cprintf("tjoin %d p %d t %d\n", thread, curproc->pid, mythread()->tid);
 
   for(;;){
     havethreads = 0;
-    // Scan through table looking for exited thread.
-    // for(t_node = curproc->tl.next; t_node != 0; t_node = t_node->next){
-    //   t = t_node->thread;
-    //   if(t->tid != thread)
-    //     continue;
-      
-    //   if(t->tstate == ZOMBIE);
-    // }
     for(t = ptable.thread; t < &ptable.thread[NTHREAD]; t++){
       if(t->tid != thread)
         continue;
@@ -1279,7 +1225,6 @@ thread_join(thread_t thread, void** retval)
         deallocuvm(t->master->pgdir, t->tsb + 2*PGSIZE, t->tsb);
         t->master = 0;
         release(&ptable.lock);
-        // cprintf("tjoined %d\n", t->tid);
         return 0;
       }
       
@@ -1293,8 +1238,6 @@ thread_join(thread_t thread, void** retval)
 
     // Wait for children to exit.  (See wakeup1 call in proc_exit.)
     sleep(curproc, &ptable.lock);  //DOC: wait-sleep
-    // cprintf("tried join %d but not end yet call tsched\n", thread);
-    // tsched();
   }
 
   release(&ptable.lock);
