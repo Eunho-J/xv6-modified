@@ -113,6 +113,7 @@ sys_getlev(void)
   return myproc()->p_node.level;
 }
 
+
 int sys_thread_create(void)
 {
   int thread, start_routine, arg;
@@ -157,5 +158,5 @@ int sys_thread_join(void)
 
 int sys_gettid(void)
 {
-  return myproc()->tid;
+  return mythread()->tid;
 }

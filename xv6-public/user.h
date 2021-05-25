@@ -33,6 +33,7 @@ int thread_exit(void*);
 int thread_join(thread_t, void**);
 int gettid(void);
 
+
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);

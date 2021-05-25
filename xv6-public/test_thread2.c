@@ -45,11 +45,6 @@ volatile int gcnt;
 int gpipe[2];
 
 int (*testfunc[NTEST])(void) = {
-  racingtest,
-  basictest,
-  jointest1,
-  jointest2,
-  stresstest,
   exittest1,
   exittest2,
   forktest,
@@ -59,13 +54,24 @@ int (*testfunc[NTEST])(void) = {
   pipetest,
   sleeptest,
   stridetest,
+  // exittest1,
+  // exittest1,
+  // exittest2,
+  // exittest1,
+  // exittest2,
+  // exittest1,
+  // exittest2,
+  // exittest1,
+  // exittest2,
+  // forktest,
+  // exectest,
+  racingtest,
+  basictest,
+  jointest1,
+  jointest2,
+  stresstest,
 };
 char *testname[NTEST] = {
-  "racingtest",
-  "basictest",
-  "jointest1",
-  "jointest2",
-  "stresstest",
   "exittest1",
   "exittest2",
   "forktest",
@@ -75,6 +81,22 @@ char *testname[NTEST] = {
   "pipetest",
   "sleeptest",
   "stridetest",
+  // "exittest1",
+  // "exittest1",
+  // "exittest2",
+  // "exittest1",
+  // "exittest2",
+  // "exittest1",
+  // "exittest2",
+  // "exittest1",
+  // "exittest2",
+  // "forktest",
+  // "exectest",
+  "racingtest",
+  "basictest",
+  "jointest1",
+  "jointest2",
+  "stresstest",
 };
 
 int
@@ -119,7 +141,10 @@ main(int argc, char *argv[])
     printf(1,"%d. %s finish\n", i, testname[i]);
     sleep(100);
   }
+  
+  printf(1,"finish\n");
   exit();
+  printf(1,"finish?\n");
 }
 
 // ============================================================================
@@ -630,6 +655,7 @@ sleeptest(void)
     }
   }
   sleep(10);
+  // exit();
   return 0;
 }
 
@@ -638,7 +664,7 @@ sleeptest(void)
 void*
 stridethreadmain(void *arg)
 {
-  int *flag = (int*)arg;
+  volatile int *flag = (int*)arg;
   int t;
   while(*flag){
     while(*flag == 1){
@@ -666,7 +692,9 @@ stridetest(void)
     printf(1, "panic at fork in forktest\n");
     exit();
   } else if (pid == 0){
+    // printf(1, "child forked\n");
     set_cpu_share(2);
+    // printf(1, "%d\n", getlev());
   } else{
     set_cpu_share(10);
   }
@@ -677,6 +705,9 @@ stridetest(void)
       return -1;
     }
   }
+  // if (pid == 0){
+  //   printf(1, "child threads created\n");
+  // }
   flag = 1;
   sleep(500);
   flag = 0;

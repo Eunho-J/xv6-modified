@@ -18,43 +18,24 @@ int
 main(void)
 {
   kinit1(end, P2V(4*1024*1024)); // phys page allocator
-  cprintf("1");
   kvmalloc();      // kernel page table
-  cprintf("2");
   mpinit();        // detect other processors
-  cprintf("3");
   lapicinit();     // interrupt controller
-  cprintf("4");
   seginit();       // segment descriptors
-  cprintf("5");
   picinit();       // disable pic
-  cprintf("6");
   ioapicinit();    // another interrupt controller
-  cprintf("7");
   consoleinit();   // console hardware
-  cprintf("8");
   uartinit();      // serial port
-  cprintf("9");
   pinit();         // process table
-  cprintf("0");
   queue_init();    // scheduler queue
-  cprintf("1");
   tvinit();        // trap vectors
-  cprintf("2");
   binit();         // buffer cache
-  cprintf("3");
   fileinit();      // file table
-  cprintf("4");
   ideinit();       // disk 
-  cprintf("5");
   startothers();   // start other processors
-  cprintf("6");
   kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()
-  cprintf("7");
   userinit();      // first user process
-  cprintf("8");
   mpmain();        // finish this processor's setup
-  cprintf("9");
 }
 
 // Other CPUs jump here from entryother.S.
