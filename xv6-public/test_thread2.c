@@ -45,6 +45,11 @@ volatile int gcnt;
 int gpipe[2];
 
 int (*testfunc[NTEST])(void) = {
+  racingtest,
+  basictest,
+  jointest1,
+  jointest2,
+  stresstest,
   exittest1,
   exittest2,
   forktest,
@@ -54,24 +59,13 @@ int (*testfunc[NTEST])(void) = {
   pipetest,
   sleeptest,
   stridetest,
-  // exittest1,
-  // exittest1,
-  // exittest2,
-  // exittest1,
-  // exittest2,
-  // exittest1,
-  // exittest2,
-  // exittest1,
-  // exittest2,
-  // forktest,
-  // exectest,
-  racingtest,
-  basictest,
-  jointest1,
-  jointest2,
-  stresstest,
 };
 char *testname[NTEST] = {
+  "racingtest",
+  "basictest",
+  "jointest1",
+  "jointest2",
+  "stresstest",
   "exittest1",
   "exittest2",
   "forktest",
@@ -81,24 +75,7 @@ char *testname[NTEST] = {
   "pipetest",
   "sleeptest",
   "stridetest",
-  // "exittest1",
-  // "exittest1",
-  // "exittest2",
-  // "exittest1",
-  // "exittest2",
-  // "exittest1",
-  // "exittest2",
-  // "exittest1",
-  // "exittest2",
-  // "forktest",
-  // "exectest",
-  "racingtest",
-  "basictest",
-  "jointest1",
-  "jointest2",
-  "stresstest",
 };
-
 int
 main(int argc, char *argv[])
 {

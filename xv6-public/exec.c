@@ -22,8 +22,6 @@ exec(char *path, char **argv)
   struct q_node *temp;
 
   
-  curproc->nrt = 1;
-  curproc->nt = 1;
   begin_op();
 
   if((ip = namei(path)) == 0){
@@ -97,7 +95,9 @@ exec(char *path, char **argv)
       last = s+1;
   safestrcpy(curproc->name, last, sizeof(curproc->name));
 
-  // Commit to the user image.
+  curproc->nrt = 1;
+  curproc->nt = 1;
+  // Clear other threads
   for(temp = queue_pop(&curproc->tl); temp != 0; temp = queue_pop(&curproc->tl)){
     kfree(temp->thread->kstack);
     temp->thread->kstack = 0;
