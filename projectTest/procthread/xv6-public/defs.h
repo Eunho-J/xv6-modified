@@ -106,6 +106,7 @@ int             pipewrite(struct pipe*, char*, int);
 //PAGEBREAK: 16
 // proc.c
 int             cpuid(void);
+void            cleanthreads(void);
 void            exit(void);
 int             fork(void);
 int             growproc(int);

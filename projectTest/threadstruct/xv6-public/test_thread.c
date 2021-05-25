@@ -20,15 +20,15 @@ volatile int gcnt;
 int gpipe[2];
 
 int (*testfunc[NTEST])(void) = {
-  basictest,
   racingtest,
+  basictest,
   jointest1,
   jointest2,
   stresstest,
 };
 char *testname[NTEST] = {
-  "basictest",
   "racingtest",
+  "basictest",
   "jointest1",
   "jointest2",
   "stresstest",
@@ -114,6 +114,7 @@ racingtest(void)
       return -1;
     }
   }
+  // thread_exit((void*)1);
   for (i = 0; i < NUM_THREAD; i++){
     if (thread_join(threads[i], &retval) != 0 || (int)retval != i+1){
       printf(1, "panic at thread_join\n");
@@ -132,7 +133,6 @@ basicthreadmain(void *arg)
   int i;
   for (i = 0; i < 100000000; i++){
     if (i % 20000000 == 0){
-      // printf(1, "%d[%d:%d]", tid, getpid(), gettid());
       printf(1, "%d", tid);
     }
   }
@@ -147,8 +147,6 @@ basictest(void)
   thread_t threads[NUM_THREAD];
   int i;
   void *retval;
-
-  printf(1, "-------bt pid %d tid %d\n", getpid(), gettid());
   
   for (i = 0; i < NUM_THREAD; i++){
     if (thread_create(&threads[i], basicthreadmain, (void*)i) != 0){
@@ -162,8 +160,6 @@ basictest(void)
       return -1;
     }
   }
-  printf(1, "--2-----bt pid %d tid %d\n", getpid(), gettid());
-  
   printf(1,"\n");
   return 0;
 }

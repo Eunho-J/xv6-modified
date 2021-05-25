@@ -162,7 +162,10 @@ found:
   p->p_node.level = 0;
   p->master = p;
   p->nthread = 1;
-
+  p->bl.cnt = 0;
+  for(int i = 0; i < NPROC; i++)
+    p->bl.blanklist[i] = 0;
+  
   p->lwps.type = QUEUE_MLFQ;
   p->lwps.next = 0;
 
@@ -217,7 +220,7 @@ growproc(int n)
   uint sz;
   struct proc *curproc = myproc();
 
-  sz = curproc->sz;
+  sz = curproc->master->sz;
   if(n > 0){
     if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
       return -1;
@@ -225,7 +228,7 @@ growproc(int n)
     if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0)
       return -1;
   }
-  curproc->sz = sz;
+  curproc->master->sz = sz;
   switchuvm(curproc);
   return 0;
 }
@@ -238,6 +241,7 @@ fork(void)
 {
   int i, pid;
   struct proc *np;
+  struct proc *temp;
   struct proc *curproc = myproc();
 
   // Allocate process.
@@ -246,15 +250,36 @@ fork(void)
   }
 
   // Copy process state from proc.
-  if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
+  if((np->pgdir = copyuvm(curproc->master->pgdir, curproc->master->sz)) == 0){
     kfree(np->kstack);
     np->kstack = 0;
     np->state = UNUSED;
     return -1;
   }
-  np->sz = curproc->sz;
+  np->sz = curproc->master->sz;
   np->parent = curproc;
+  np->master = np;
+  np->tsb = curproc->tsb;
+  np->bl.cnt = curproc->master->bl.cnt;
+  for (int i = 0; i < np->bl.cnt; i++)
+  {
+    np->bl.blanklist[i] = curproc->master->bl.blanklist[i];
+  }
+  
   *np->tf = *curproc->tf;
+
+  acquire(&ptable.lock);
+  for (temp = ptable.proc; temp < &ptable.proc[NPROC]; temp++)
+  {
+    if (temp->master == curproc->master && temp != curproc)
+    {
+      np->bl.blanklist[np->bl.cnt] = temp->tsb;
+      np->bl.cnt++;
+      deallocuvm(np->pgdir, temp->tsb + 2*PGSIZE, temp->tsb);
+    }
+  }
+  // cprintf("forked pid %d tid %d cnt %d\n", np->pid, np->tid, np->bl.cnt);
+  release(&ptable.lock);
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -281,6 +306,35 @@ fork(void)
   return pid;
 }
 
+void
+cleanthreads(void)
+{
+  struct proc *curproc = myproc();
+  struct proc *p;
+
+
+  acquire(&ptable.lock);
+  // cprintf("cleanthread!!!!!!!!!!!!\n");
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->master == curproc->master && p != curproc){
+      kfree(p->kstack);
+      p->pid = 0;
+      p->kstack = 0;
+      p->state = UNUSED;
+      p->cwd = 0;
+      p->tid = 0;
+      p->parent = 0;
+      p->name[0] = 0;
+      p->killed = 0;
+      // p->master->bl.blanklist[p->master->bl.cnt] = p->tsb;
+      // p->master->bl.cnt++;
+      // deallocuvm(p->pgdir, p->sz, p->tsb);
+      p->master = 0;
+    }
+  }
+  release(&ptable.lock);
+}
+
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
 // until its parent calls wait() to find out it exited.
@@ -294,6 +348,11 @@ exit(void)
   if(curproc == initproc)
     panic("init exiting");
 
+  cleanthreads();
+
+  // pushcli();
+  curproc->sz = curproc->master->sz;
+
   // Close all open files.
   for(fd = 0; fd < NOFILE; fd++){
     if(curproc->ofile[fd]){
@@ -301,6 +360,8 @@ exit(void)
       curproc->ofile[fd] = 0;
     }
   }
+
+  // popcli();
 
   begin_op();
   iput(curproc->cwd);
@@ -310,7 +371,33 @@ exit(void)
   acquire(&ptable.lock);
 
   // Parent might be sleeping in wait().
+  // cprintf("exit pid %d parentpid %d parentstate %d", curproc->pid, curproc->parent->pid, curproc->parent->state);
   wakeup1(curproc->parent);
+
+  // cprintf("exit pid %d parentpid %d parentstate %d parentlev %d\n", curproc->pid, curproc->parent->pid, curproc->parent->state, curproc->parent->p_node.level);
+  
+  if (queue_hasRunnable(&mlfq_0))
+  {
+    // cprintf("mlfq_0 has ");
+  }
+  else if (queue_hasRunnable(&mlfq_1))
+  {
+    // cprintf("mlfq_1 has ");
+  }
+  else if (queue_hasRunnable(&mlfq_2))
+  {
+    // cprintf("mlfq_2 has ");
+  }
+  else
+  {
+    cprintf("no runnable ");
+    if (curproc->parent->pid == 2)
+    {
+      cprintf("push shell \n");
+      queue_push(&mlfq_0, &(curproc->parent->p_node));
+    }
+  }
+  
 
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
@@ -329,6 +416,7 @@ exit(void)
     curproc->p_node.share = 0;
   }
   
+  // popcli();
   sched();
   panic("zombie exit");
 }
@@ -357,10 +445,13 @@ wait(void)
         p->kstack = 0;
         freevm(p->pgdir);
         p->pid = 0;
+        p->tid = 0;
+        p->bl.cnt = 0;
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
+        p->master = 0;
         release(&ptable.lock);
         return pid;
       }
@@ -475,17 +566,28 @@ scheduler(void)
         if(queue_hasRunnable(&mlfq_0)) // mlfq_0 has runnable node
         {
           node = queue_pop(&mlfq_0);
+          while (node->proc->state == UNUSED)
+          {
+            cprintf("proc unused pid%d\n", node->proc->pid);
+            node = queue_pop(&mlfq_0);
+          }
           if (node->proc->state == SLEEPING)
           {
             queue_push(&mlfq_0,node);
             continue;
           }
+          
           i++;
           mlfq_tickCount++;
         }
         else if (queue_hasRunnable(&mlfq_1)) // mlfq_1 has runnable node
         {
           node = queue_pop(&mlfq_1);
+          while (node->proc->state == UNUSED)
+          {
+            cprintf("proc unused pid%d\n", node->proc->pid);
+            node = queue_pop(&mlfq_1);
+          }
           if (node->proc->state == SLEEPING)
           {
             queue_push(&mlfq_1,node);
@@ -497,6 +599,11 @@ scheduler(void)
         else if (queue_hasRunnable(&mlfq_2)) // mlfq_2 has runnable node
         {
           node = queue_pop(&mlfq_2);
+          while (node->proc->state == UNUSED)
+          {
+            cprintf("proc unused pid%d\n", node->proc->pid);
+            node = queue_pop(&mlfq_2);
+          }
           if (node->proc->state == SLEEPING)
           {
             queue_push(&mlfq_2,node);
@@ -518,6 +625,7 @@ scheduler(void)
           node->level++;
         }
         
+        // cprintf("lev[%d] ", node->level);
         p = node->proc;
         
         
@@ -574,6 +682,11 @@ scheduler(void)
         release(&ptable.lock);
         continue;
       }
+      // TODO: node unused check due to exit() call of thread
+      // while (node->proc->state == UNUSED)
+      // {
+      //   node = queue_pop(&stride);
+      // }
 
       node->turnCount++;
       node->distance = node->turnCount * 100 / node->share;
@@ -745,20 +858,35 @@ int
 kill(int pid)
 {
   struct proc *p;
+  int ret = -1;
 
   acquire(&ptable.lock);
+  // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+  //   if(p->pid == pid && p->master != p){
+  //     kfree(p->kstack);
+  //     p->pid = 0;
+  //     p->kstack = 0;
+  //     p->state = UNUSED;
+  //     p->cwd = 0;
+  //     // p->master->bl.blanklist[p->master->bl.cnt] = p->tsb;
+  //     // p->master->bl.cnt++;
+  //     // deallocuvm(p->pgdir, p->sz, p->tsb);
+  //     p->master = 0;
+  //   }
+  // }
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid == pid){
       p->killed = 1;
       // Wake process from sleep if necessary.
       if(p->state == SLEEPING)
         p->state = RUNNABLE;
-      release(&ptable.lock);
-      return 0;
+      ret = 0;
+      // release(&ptable.lock);
+      // return 0;
     }
   }
   release(&ptable.lock);
-  return -1;
+  return ret;
 }
 
 //PAGEBREAK: 36
@@ -1022,6 +1150,7 @@ thread_create(thread_t* thread, void* (*start_routine)(void *), void* arg)
   nt->tf->eip = (uint)start_routine;
   nt->pid = curmaster->pid;
   nt->master = curmaster;
+  nt->parent = curmaster->parent;
   
   *thread = nt->tid;
 
@@ -1094,7 +1223,11 @@ master:
         temp->master->bl.cnt++;
         deallocuvm(temp->pgdir, temp->sz, temp->tsb);
         temp->master = 0;
+        temp->sz = 0;
+        temp->tsb = 0;
         curthread->nthread--;
+        temp->parent = 0;
+        temp->pid = 0;
       }
       else
       {
@@ -1147,6 +1280,8 @@ thread_join(thread_t thread, void** retval)
         p->master->bl.cnt++;
         deallocuvm(p->pgdir, p->sz, p->tsb);
         p->master = 0;
+        p->parent = 0;
+        p->pid = 0;
         release(&ptable.lock);
         return 0;
       }

@@ -40,7 +40,7 @@ trap(struct trapframe *tf)
   if(tf->trapno == T_SYSCALL){
     if(myproc()->killed)
       exit();
-    myproc()->tf = tf;
+    mythread()->tf = tf;
     syscall();
     if (tf->eax == 13 || tf->eax == 24) // if process called yield/sleep itself
     { // adjust ticks_checker when process runs again because it starts from here.
@@ -87,14 +87,17 @@ trap(struct trapframe *tf)
   default:
     if(myproc() == 0 || (tf->cs&3) == 0){
       // In kernel, it must be our mistake.
-      cprintf("tid %d unexpected trap %d from cpu %d eip %x (cr2=0x%x)\n",
-              myproc()->cur_t_node->thread->tid, tf->trapno, cpuid(), tf->eip, rcr2());
+      cprintf("unexpected trap %d from cpu %d eip %x (cr2=0x%x) cs=%d\n",
+              tf->trapno, cpuid(), tf->eip, rcr2(), tf->cs);
       panic("trap");
     }
+    // else
+    //   cprintf("expected trap %d from cpu %d eip %x (cr2=0x%x) cs=%d\n",
+    //           tf->trapno, cpuid(), tf->eip, rcr2(), tf->cs);
     // In user space, assume process misbehaved.
-    cprintf("pid %d tid %d %s: trap %d err %d on cpu %d "
+    cprintf("pid %d %s: trap %d err %d on cpu %d "
             "eip 0x%x addr 0x%x--kill proc\n",
-            myproc()->pid, myproc()->cur_t_node->thread->tid, myproc()->name, tf->trapno,
+            myproc()->pid, myproc()->name, tf->trapno,
             tf->err, cpuid(), tf->eip, rcr2());
     myproc()->killed = 1;
   }
@@ -110,15 +113,12 @@ trap(struct trapframe *tf)
   if(myproc() && myproc()->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER) {
       if( myproc()->p_node.level == LEVEL_MLFQ_0 )
       {
-        if (ticks - ticks_checker >= 5)
-        {
-          yield();
-          ticks_checker = ticks;
-        }
+        yield();
+        ticks_checker = ticks;
       }
       else if (myproc()->p_node.level == LEVEL_MLFQ_1)
       {
-        if (ticks - ticks_checker >= 10)
+        if (ticks - ticks_checker >= 2)
         {
           yield();
           ticks_checker = ticks;
@@ -126,7 +126,7 @@ trap(struct trapframe *tf)
       }
       else if (myproc()->p_node.level == LEVEL_MLFQ_2)
       {
-        if (ticks - ticks_checker >= 20)
+        if (ticks - ticks_checker >= 4)
         {
           yield();
           ticks_checker = ticks;
@@ -134,7 +134,7 @@ trap(struct trapframe *tf)
       }
       else if (myproc()->p_node.level == LEVEL_STRIDE)
       {
-        if (ticks - ticks_checker >= 5)
+        if (ticks - ticks_checker >= 4)
         {
           yield();
           ticks_checker = ticks;
@@ -143,8 +143,7 @@ trap(struct trapframe *tf)
       else
         panic("process level inavailable");
       // cprintf("--[yield fin]--\n");
-      tsched();
-      // cprintf("pid %d tid %d esp %d\n", myproc()->pid, myproc()->cur_t_node->thread->tid, myproc()->tf->esp);
+      tyield();
   }
 
   // Check if the process has been killed since we yielded

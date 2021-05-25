@@ -38,43 +38,65 @@ int pipetest(void);
 // Test sleep system call in multi-threaded environment
 int sleeptest(void);
 
-// Test behavior when we use cpu_share with thread
+// Test behavior when we use set_cpu_share with thread
 int stridetest(void);
 
 volatile int gcnt;
 int gpipe[2];
 
 int (*testfunc[NTEST])(void) = {
-  racingtest,
-  basictest,
-  jointest1,
-  jointest2,
-  stresstest,
   exittest1,
   exittest2,
   forktest,
   exectest,
   sbrktest,
   killtest,
-  pipetest,
-  sleeptest,
-  stridetest,
+  // pipetest,
+  // sleeptest,
+  // stridetest,
+  // exittest1,
+  exittest1,
+  exittest2,
+  exittest1,
+  exittest2,
+  exittest1,
+  exittest2,
+  exittest1,
+  exittest2,
+  // forktest,
+  // exectest,
+  // racingtest,
+  // basictest,
+  // jointest1,
+  // jointest2,
+  // stresstest,
 };
 char *testname[NTEST] = {
-  "racingtest",
-  "basictest",
-  "jointest1",
-  "jointest2",
-  "stresstest",
   "exittest1",
   "exittest2",
   "forktest",
   "exectest",
   "sbrktest",
   "killtest",
-  "pipetest",
-  "sleeptest",
-  "stridetest",
+  // "pipetest",
+  // "sleeptest",
+  // "stridetest",
+  // "exittest1",
+  "exittest1",
+  "exittest2",
+  "exittest1",
+  "exittest2",
+  "exittest1",
+  "exittest2",
+  "exittest1",
+  "exittest2",
+  // "forktest",
+  // "exectest",
+  // "racingtest",
+  // "basictest",
+  // "jointest1",
+  // "jointest2",
+  // "stresstest",
 };
 
 int
@@ -119,7 +141,10 @@ main(int argc, char *argv[])
     printf(1,"%d. %s finish\n", i, testname[i]);
     sleep(100);
   }
+  
+  printf(1,"finish\n");
   exit();
+  printf(1,"finish?\n");
 }
 
 // ============================================================================
@@ -638,7 +663,7 @@ sleeptest(void)
 void*
 stridethreadmain(void *arg)
 {
-  volatile int *flag = (int*)arg;
+  int *flag = (int*)arg;
   int t;
   while(*flag){
     while(*flag == 1){
