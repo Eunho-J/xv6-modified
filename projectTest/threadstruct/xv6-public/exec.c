@@ -27,7 +27,6 @@ exec(char *path, char **argv)
 
   if((ip = namei(path)) == 0){
     end_op();
-    popcli();
     cprintf("exec: fail\n");
     return -1;
   }
@@ -100,7 +99,7 @@ exec(char *path, char **argv)
   // pushcli();
   // Commit to the user image.
   for(temp = queue_pop(&curproc->tl); temp != 0; temp = queue_pop(&curproc->tl)){
-    cprintf("in exec popped\n");
+    // cprintf("in exec popped\n");
     kfree(temp->thread->kstack);
     temp->thread->kstack = 0;
     temp->thread->tf = 0;

@@ -159,6 +159,7 @@ tfound:
 
   p->t_node = &(t->t_node);
   p->nrt = 0;
+  p->nt = 0;
   p->bl.cnt = 0;
   t->chan = 0;
 
@@ -245,6 +246,7 @@ userinit(void)
   p->state = RUNNABLE;
   t->tstate = RUNNABLE;
   p->nrt = 1;
+  p->nt = 1;
   // Push node to mlfq_0 when state changed to RUNNABLE.
   queue_push(&mlfq_0, &(p->p_node));
 
@@ -340,6 +342,7 @@ fork(void)
   np->state = RUNNABLE;
   nt->tstate = RUNNABLE;
   np->nrt = 1;
+  np->nt = 1;
   
   // Push to mlfq_0 when state changed to RUNNABLE
   queue_push(&mlfq_0, &(np->p_node));
@@ -536,7 +539,7 @@ scheduler(void)
     acquire(&ptable.lock);
 
     // prevent buffer overflow of distances
-    if (stride.next->distance > 99 ) // means every node in stride has about 100 - shareleft distance
+    if (stride.next->distance > 399 ) // means every node in stride has about 100 - shareleft distance
     {
       // reset all distance of stride processes to prevent buffer overflow.
       for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
@@ -561,7 +564,7 @@ scheduler(void)
     if(node->level == LEVEL_MLFQ_AS_PROC)
     {
       mlfq_as_proc.turnCount++;
-      mlfq_as_proc.distance = mlfq_as_proc.turnCount * 100 / mlfq_as_proc.share;
+      mlfq_as_proc.distance = mlfq_as_proc.turnCount * 400 / mlfq_as_proc.share;
       queue_push(&stride, &mlfq_as_proc);
       for (int i = 0; i < 4;)
       {
@@ -574,7 +577,7 @@ scheduler(void)
             continue;
           }
           i++;
-          mlfq_tickCount++;
+          mlfq_tickCount+=5;
         }
         else if (queue_hasRunnable(&mlfq_1)) // mlfq_1 has runnable node
         {
@@ -585,7 +588,7 @@ scheduler(void)
             continue;
           }
           i += 2;
-          mlfq_tickCount += 2;
+          mlfq_tickCount += 10;
         }
         else if (queue_hasRunnable(&mlfq_2)) // mlfq_2 has runnable node
         {
@@ -596,7 +599,7 @@ scheduler(void)
             continue;
           }
           i += 4;
-          mlfq_tickCount += 4;
+          mlfq_tickCount += 20;
         }
         else // mlfq has no runnable node
         {
@@ -649,7 +652,7 @@ scheduler(void)
         
         c->proc = 0;
 
-        if (mlfq_tickCount >= 100)
+        if (mlfq_tickCount >= 200)
         {
           mlfq_tickCount = 0;
           priority_boost();
@@ -663,7 +666,10 @@ scheduler(void)
       // stride node execution code 
       if (node->proc->state == SLEEPING)
       {
+        node->turnCount++;
+        node->distance = node->turnCount * 100 / node->share;
         queue_push(&stride, node);
+        release(&ptable.lock);
         continue;
       }
 
@@ -727,7 +733,7 @@ tsched(void)
   struct proc *curproc = myproc();
   struct thread *curthread = mythread();
   struct q_node *newt_node, *oldt_node;
-  cprintf("tsched\n");
+  // cprintf("tsched\n");
   //TODO : thread context switch
   // acquire(&ptable.lock);
 
@@ -735,12 +741,13 @@ tsched(void)
   if(curproc->nrt < 0){
     panic("nrt less than 1");
   }
-  else if (curproc->nrt == 1 && curthread->tstate != ZOMBIE) //if nrt is 1, does not need to switch thread
+  else if (curproc->nrt == 1 && curthread->tstate == RUNNABLE) //if nrt is 1, does not need to switch thread
   {
     // release(&ptable.lock);
     return;
   }
   
+  oldt_node = curproc->t_node;
   newt_node = queue_pop(&curproc->tl);
   while(newt_node->thread->tstate != RUNNABLE)
   {
@@ -748,8 +755,8 @@ tsched(void)
     newt_node = queue_pop(&curproc->tl);
   }
 
-  oldt_node = curproc->t_node;
-  queue_push(&curproc->tl, oldt_node);
+  if(oldt_node->thread->tstate != ZOMBIE)
+    queue_push(&curproc->tl, oldt_node);
   curproc->t_node = newt_node;
   mycpu()->ts.esp0 = (uint)newt_node->thread->kstack + KSTACKSIZE;
   swtch(&oldt_node->thread->context, newt_node->thread->context);
@@ -834,12 +841,15 @@ sleep(void *chan, struct spinlock *lk)
   t->chan = chan;
   t->tstate = SLEEPING;
   p->nrt--;
-
+  
   if(p->nrt > 0)
     goto threadsched;
-
+  
   p->state = SLEEPING;
+  // cprintf("no runnable thread caused sleep\n");
   sched();
+  if(t->tstate == SLEEPING)
+    goto threadsched;
 
   // Tidy up.
   // p->chan = 0;
@@ -857,7 +867,6 @@ threadsched:
   tsched();
 
   t->chan = 0;
-
   // Reacquire original lock.
   if(lk != &ptable.lock){  //DOC: sleeplock2
     release(&ptable.lock);
@@ -879,7 +888,6 @@ wakeup1(void *chan)
   // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
   //   if(p->state == SLEEPING && p->chan == chan)
   //     p->state = RUNNABLE;
-
   for(t = ptable.thread; t < &ptable.thread[NTHREAD]; t++)
   {
     if(t->tstate == SLEEPING && t->chan == chan)
@@ -1112,6 +1120,7 @@ thread_create(thread_t* thread, void* (*start_routine)(void *), void* arg)
     if(t->tstate == UNUSED)
       goto tfound;
 
+  cprintf("failed to create thread\n");
   release(&ptable.lock);
   return -1;
 
@@ -1180,8 +1189,10 @@ tfound:
 
   acquire(&ptable.lock);
   curproc->nrt++;
+  curproc->nt++;
   t->tstate = RUNNABLE;
   queue_push(&curproc->tl, &t->t_node);
+  // cprintf("tcreated tid %d\n", t->tid);
   release(&ptable.lock);
   return 0;
 
@@ -1202,24 +1213,32 @@ thread_exit(void* retval)
 {
   struct proc *curproc;
   struct thread *curthread;
-  cprintf("texit!\n");
+  // cprintf("texit!\n");
   acquire(&ptable.lock);
   curproc = myproc();
   curthread = mythread();
 
+  // cprintf("texit p %d t %d\n", curproc->pid, curthread->tid);
+  curproc->nt--;
   curproc->nrt--;
-  if(curproc->nrt < 1)  // this was last thread...
+  if(curproc->nt < 1)  // this was last thread...
   {
     cprintf("last thread called thread_exit\n");
     release(&ptable.lock);
     exit();
   }
 
+
   curthread->ret_val = retval;
   curthread->tstate = ZOMBIE;
 
   wakeup1(curproc);
 
+  while(curproc->nrt < 1)
+  {
+    curproc->state = RUNNABLE;
+    sched();
+  }
   tsched();
   panic("zombie thread exit");
 }
@@ -1228,13 +1247,58 @@ thread_exit(void* retval)
 int
 thread_join(thread_t thread, void** retval)
 {
-  cprintf("tjoin!\n");
-  while (1)
-  {
-    /* code */
-  }
+  struct thread *t;
+  // struct q_node *t_node;
+  struct proc *curproc = myproc();
+  int havethreads = 0;
   
-  //TODO
+  acquire(&ptable.lock);
+  // cprintf("tjoin %d p %d t %d\n", thread, curproc->pid, mythread()->tid);
+
+  for(;;){
+    havethreads = 0;
+    // Scan through table looking for exited thread.
+    // for(t_node = curproc->tl.next; t_node != 0; t_node = t_node->next){
+    //   t = t_node->thread;
+    //   if(t->tid != thread)
+    //     continue;
+      
+    //   if(t->tstate == ZOMBIE);
+    // }
+    for(t = ptable.thread; t < &ptable.thread[NTHREAD]; t++){
+      if(t->tid != thread)
+        continue;
+      havethreads = 1;
+      if(t->tstate == ZOMBIE){
+        *retval = t->ret_val;
+        kfree(t->kstack);
+        t->kstack = 0;
+        t->tstate = UNUSED;
+        t->master->bl.blanklist[t->master->bl.cnt] = t->tsb;
+        t->master->bl.cnt++;
+        deallocuvm(t->master->pgdir, t->tsb + 2*PGSIZE, t->tsb);
+        t->master = 0;
+        release(&ptable.lock);
+        // cprintf("tjoined %d\n", t->tid);
+        return 0;
+      }
+      
+    }
+
+    // No point waiting if we don't have any children.
+    if(!havethreads || curproc->killed){
+      release(&ptable.lock);
+      return -1;
+    }
+
+    // Wait for children to exit.  (See wakeup1 call in proc_exit.)
+    sleep(curproc, &ptable.lock);  //DOC: wait-sleep
+    // cprintf("tried join %d but not end yet call tsched\n", thread);
+    // tsched();
+  }
+
+  release(&ptable.lock);
+
   return 0;
 }
 

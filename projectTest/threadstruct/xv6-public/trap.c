@@ -113,12 +113,15 @@ trap(struct trapframe *tf)
   if(myproc() && myproc()->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER) {
       if( myproc()->p_node.level == LEVEL_MLFQ_0 )
       {
-        yield();
-        ticks_checker = ticks;
+        if (ticks - ticks_checker >= 5)
+        {
+          yield();
+          ticks_checker = ticks;
+        }
       }
       else if (myproc()->p_node.level == LEVEL_MLFQ_1)
       {
-        if (ticks - ticks_checker >= 2)
+        if (ticks - ticks_checker >= 10)
         {
           yield();
           ticks_checker = ticks;
@@ -126,7 +129,7 @@ trap(struct trapframe *tf)
       }
       else if (myproc()->p_node.level == LEVEL_MLFQ_2)
       {
-        if (ticks - ticks_checker >= 4)
+        if (ticks - ticks_checker >= 20)
         {
           yield();
           ticks_checker = ticks;
@@ -134,7 +137,7 @@ trap(struct trapframe *tf)
       }
       else if (myproc()->p_node.level == LEVEL_STRIDE)
       {
-        if (ticks - ticks_checker >= 4)
+        if (ticks - ticks_checker >= 5)
         {
           yield();
           ticks_checker = ticks;
