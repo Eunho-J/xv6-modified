@@ -1192,7 +1192,7 @@ thread_exit(void* retval)
 
   while(curproc->nrt < 1)
   {
-    curproc->state = RUNNABLE;
+    curproc->state = SLEEPING;
     sched();
   }
   tsched();
