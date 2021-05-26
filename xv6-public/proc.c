@@ -1120,6 +1120,7 @@ tfound:
 
 
   acquire(&ptable.lock);
+  acquire(&growlock);
   if(curproc->bl.cnt == 0)
   {
     sz = curproc->sz;
@@ -1135,7 +1136,7 @@ tfound:
   t->tsb = sz;
   if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
     goto bad;
-
+  release(&growlock);
   release(&ptable.lock);
 
   nsp = sz - 4;
