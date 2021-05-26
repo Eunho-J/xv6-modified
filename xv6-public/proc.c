@@ -638,7 +638,7 @@ scheduler(void)
         
         c->proc = 0;
 
-        if (mlfq_tickCount >= 500)
+        if (mlfq_tickCount >= 200)
         {
           mlfq_tickCount = 0;
           priority_boost();
