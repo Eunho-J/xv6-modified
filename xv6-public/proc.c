@@ -13,6 +13,8 @@ struct {
   struct thread thread[NTHREAD];
 } ptable;
 
+struct spinlock growlock;
+
 static struct proc *initproc;
 
 int nextpid = 1;
@@ -65,6 +67,7 @@ void
 pinit(void)
 {
   initlock(&ptable.lock, "ptable");
+  initlock(&growlock, "grow");
 }
 
 // Must be called with interrupts disabled
@@ -255,8 +258,6 @@ growproc(int n)
 {
   uint sz;
   struct proc *curproc = myproc();
-  // acquire ptable lock to prevent race condition from multithread
-  acquire(&ptable.lock);
 
   sz = curproc->sz;
   if(n > 0){
@@ -268,7 +269,6 @@ growproc(int n)
   }
   curproc->sz = sz;
   switchuvm(curproc);
-  release(&ptable.lock);
   return 0;
 }
 

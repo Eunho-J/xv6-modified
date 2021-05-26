@@ -7,6 +7,8 @@
 #include "mmu.h"
 #include "proc.h"
 
+extern struct spinlock growlock;
+
 int
 sys_fork(void)
 {
@@ -50,9 +52,15 @@ sys_sbrk(void)
 
   if(argint(0, &n) < 0)
     return -1;
+  // acquire growlock to prevent race condition from multithread sbrk calls
+  acquire(&growlock);
   addr = myproc()->sz;
   if(growproc(n) < 0)
+  {
+    release(&growlock);
     return -1;
+  }
+  release(&growlock);
   return addr;
 }
 
