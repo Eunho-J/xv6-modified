@@ -255,7 +255,8 @@ growproc(int n)
 {
   uint sz;
   struct proc *curproc = myproc();
-  // cprintf("growproc\n");
+  // acquire ptable lock to prevent race condition from multithread
+  acquire(&ptable.lock);
 
   sz = curproc->sz;
   if(n > 0){
@@ -267,6 +268,7 @@ growproc(int n)
   }
   curproc->sz = sz;
   switchuvm(curproc);
+  release(&ptable.lock);
   return 0;
 }
 
