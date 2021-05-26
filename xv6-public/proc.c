@@ -563,7 +563,7 @@ scheduler(void)
             continue;
           }
           i++;
-          mlfq_tickCount+=5;
+          mlfq_tickCount += 5;
         }
         else if (queue_hasRunnable(&mlfq_1)) // mlfq_1 has runnable node
         {
@@ -594,7 +594,7 @@ scheduler(void)
         
 
         node->turnCount++;
-        if (node->turnCount >= 5 && node->level < 2)
+        if (node->turnCount >= 4 && node->level < 2)
         {
           node->turnCount = 0;
           node->level++;
@@ -638,7 +638,7 @@ scheduler(void)
         
         c->proc = 0;
 
-        if (mlfq_tickCount >= 200)
+        if (mlfq_tickCount >= 500)
         {
           mlfq_tickCount = 0;
           priority_boost();
