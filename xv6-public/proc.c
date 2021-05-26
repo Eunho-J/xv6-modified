@@ -1165,6 +1165,7 @@ bad:
   t->master = 0;
   t->tid = 0;
   cprintf("bad!\n");
+  release(&growlock);
   release(&ptable.lock);
   return -1;
 }
