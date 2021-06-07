@@ -45,9 +45,6 @@ main(int argc, char *argv[])
 
         /* Wait for the child process to be done */
         wait();
-        
-        sync();
-        printf(1, "%d\n", get_log_num());
 
     } else if (pid == 0) {
         /* The child process gets into here  */
@@ -65,8 +62,12 @@ main(int argc, char *argv[])
         	printf(1, "%s\n", buf);
         }
 
+
+        printf(1, "%d\n", get_log_num());
         /* Close the reader's fd */
         close(fds[0]);
+        sync();
+        printf(1, "%d\n", get_log_num());
 
     } else {
         printf(1, "fork failed");

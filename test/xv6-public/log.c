@@ -226,7 +226,7 @@ write_log(void)
 static void
 commit()
 {
-  cprintf("commit!!!\n");
+  // cprintf("commit!!!\n");
   if (log.lh.n > 0) {
     write_log();     // Write modified blocks from cache to log
     write_head();    // Write header to disk -- the real commit
@@ -239,7 +239,7 @@ commit()
 void
 recommit()
 {
-  cprintf("recommit!!!\n");
+  // cprintf("recommit!!!\n");
   acquire(&log.lock);
   log.committing = 1;
   release(&log.lock);
