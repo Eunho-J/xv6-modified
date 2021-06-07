@@ -442,3 +442,16 @@ sys_pipe(void)
   fd[1] = fd1;
   return 0;
 }
+
+int
+sys_sync(void)
+{
+  cprintf("sys_sync!\n");
+  return 0;
+}
+
+int
+sys_get_log_num(void)
+{
+  return get_log_num();
+}

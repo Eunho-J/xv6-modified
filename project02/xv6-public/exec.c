@@ -18,7 +18,10 @@ exec(char *path, char **argv)
   struct proghdr ph;
   pde_t *pgdir, *oldpgdir;
   struct proc *curproc = myproc();
+  struct thread *curthread = mythread();
+  struct q_node *temp;
 
+  
   begin_op();
 
   if((ip = namei(path)) == 0){
@@ -34,7 +37,6 @@ exec(char *path, char **argv)
     goto bad;
   if(elf.magic != ELF_MAGIC)
     goto bad;
-
   if((pgdir = setupkvm()) == 0)
     goto bad;
 
@@ -93,13 +95,31 @@ exec(char *path, char **argv)
       last = s+1;
   safestrcpy(curproc->name, last, sizeof(curproc->name));
 
-  // Commit to the user image.
+  curproc->nrt = 1;
+  curproc->nt = 1;
+  // Clear other threads
+  for(temp = queue_pop(&curproc->tl); temp != 0; temp = queue_pop(&curproc->tl)){
+    kfree(temp->thread->kstack);
+    temp->thread->kstack = 0;
+    temp->thread->tf = 0;
+    temp->thread->master = 0;
+    temp->thread->tsb = 0;
+    temp->thread->tstate = UNUSED;
+    temp->thread->tid = 0;
+    temp->thread->ret_val = 0;
+    temp->thread->context = 0;
+    temp->thread->chan = 0;
+  }
   oldpgdir = curproc->pgdir;
   curproc->pgdir = pgdir;
+
   curproc->sz = sz;
-  curproc->tsb = sz - 2*PGSIZE;
-  curproc->tf->eip = elf.entry;  // main
-  curproc->tf->esp = sp;
+  curproc->bl.cnt = 0;
+
+  curthread->tsb = sz - 2*PGSIZE;
+  curthread->tf->eip = elf.entry;  // main
+  curthread->tf->esp = sp;
+
   switchuvm(curproc);
   freevm(oldpgdir);
   return 0;

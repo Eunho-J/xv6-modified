@@ -232,3 +232,8 @@ log_write(struct buf *b)
   release(&log.lock);
 }
 
+int 
+get_log_num(void)
+{
+  return log.lh.n;
+}

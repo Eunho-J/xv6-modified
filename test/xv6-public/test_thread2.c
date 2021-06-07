@@ -45,6 +45,11 @@ volatile int gcnt;
 int gpipe[2];
 
 int (*testfunc[NTEST])(void) = {
+  racingtest,
+  basictest,
+  jointest1,
+  jointest2,
+  stresstest,
   exittest1,
   exittest2,
   forktest,
@@ -54,24 +59,13 @@ int (*testfunc[NTEST])(void) = {
   pipetest,
   sleeptest,
   stridetest,
-  // exittest1,
-  // exittest1,
-  // exittest2,
-  // exittest1,
-  // exittest2,
-  // exittest1,
-  // exittest2,
-  // exittest1,
-  // exittest2,
-  // forktest,
-  // exectest,
-  racingtest,
-  basictest,
-  jointest1,
-  jointest2,
-  stresstest,
 };
 char *testname[NTEST] = {
+  "racingtest",
+  "basictest",
+  "jointest1",
+  "jointest2",
+  "stresstest",
   "exittest1",
   "exittest2",
   "forktest",
@@ -81,24 +75,7 @@ char *testname[NTEST] = {
   "pipetest",
   "sleeptest",
   "stridetest",
-  // "exittest1",
-  // "exittest1",
-  // "exittest2",
-  // "exittest1",
-  // "exittest2",
-  // "exittest1",
-  // "exittest2",
-  // "exittest1",
-  // "exittest2",
-  // "forktest",
-  // "exectest",
-  "racingtest",
-  "basictest",
-  "jointest1",
-  "jointest2",
-  "stresstest",
 };
-
 int
 main(int argc, char *argv[])
 {
@@ -636,7 +613,8 @@ pipetest(void)
 void*
 sleepthreadmain(void *arg)
 {
-  sleep(1000000);
+  sleep(1000);
+  printf(1, "sleep end!\n");
   thread_exit(0);
 
   return 0;
@@ -645,6 +623,7 @@ sleepthreadmain(void *arg)
 int
 sleeptest(void)
 {
+  void *retval;
   thread_t threads[NUM_THREAD];
   int i;
 
@@ -655,6 +634,12 @@ sleeptest(void)
     }
   }
   sleep(10);
+  for (i = 0; i < NUM_THREAD; i++){
+    if (thread_join(threads[i], &retval) != 0){
+      printf(1, "panic at thread_join\n");
+      return -1;
+    }
+  }
   // exit();
   return 0;
 }

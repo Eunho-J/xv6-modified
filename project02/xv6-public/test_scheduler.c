@@ -32,20 +32,6 @@ test_stride(int portion)
 		return;
 	}
 
-
-	// if (set_cpu_share(20) != 0)
-	// {
-	// 	printf(1, "FAIL : set portion to 20\n");
-	// }
-	// else
-	// {
-	// 	printf(1, "SUCCESS: go back to mlfq\n");
-	// 	printf(1, "STRIDE SET TO PORTION 20(%d%%), cnt : %d\n", portion, cnt);
-	// }
-	
-	
-
-
 	/* Get start tick */
 	start_tick = uptime();
 
@@ -144,12 +130,12 @@ main(int argc, char *argv[])
 
 	/* Workload list */
 	struct workload workloads[WORKLOAD_NUM] = {
-		{test_stride, 60},
-		{test_stride, 15},
-		{test_stride, 5},
+		{test_stride, 70},
+		{test_stride, 10},
 		{test_mlfq, MLFQ_NONE},
 		{test_mlfq, MLFQ_NONE},
-		{test_mlfq, MLFQ_NONE},
+		{test_mlfq, MLFQ_LEVCNT},
+		{test_mlfq, MLFQ_LEVCNT},
 	};
 
 	for (i = 0; i < WORKLOAD_NUM; i++) {

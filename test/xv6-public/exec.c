@@ -22,7 +22,6 @@ exec(char *path, char **argv)
   struct q_node *temp;
 
   
-  curproc->nrt = 1;
   begin_op();
 
   if((ip = namei(path)) == 0){
@@ -96,10 +95,10 @@ exec(char *path, char **argv)
       last = s+1;
   safestrcpy(curproc->name, last, sizeof(curproc->name));
 
-  // pushcli();
-  // Commit to the user image.
+  curproc->nrt = 1;
+  curproc->nt = 1;
+  // Clear other threads
   for(temp = queue_pop(&curproc->tl); temp != 0; temp = queue_pop(&curproc->tl)){
-    // cprintf("in exec popped\n");
     kfree(temp->thread->kstack);
     temp->thread->kstack = 0;
     temp->thread->tf = 0;
@@ -114,10 +113,7 @@ exec(char *path, char **argv)
   oldpgdir = curproc->pgdir;
   curproc->pgdir = pgdir;
 
-  // curproc->tssz = sz;
   curproc->sz = sz;
-  // curproc->sz = sz - 2*PGSIZE + NTHREAD*2*PGSIZE;
-  curproc->nrt = 1;
   curproc->bl.cnt = 0;
 
   curthread->tsb = sz - 2*PGSIZE;

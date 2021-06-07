@@ -24,9 +24,6 @@ main(int argc, char *argv[])
     /* Create a pipe. */
     pipe(fds);
     printf(1, "%d\n", get_log_num());
-    // sync();
-    // printf(1, "%d\n", get_log_num());
-
 
     pid = fork();
     if (pid > 0) {
@@ -45,9 +42,6 @@ main(int argc, char *argv[])
 
         /* Wait for the child process to be done */
         wait();
-        
-        sync();
-        printf(1, "%d\n", get_log_num());
 
     } else if (pid == 0) {
         /* The child process gets into here  */
@@ -72,8 +66,6 @@ main(int argc, char *argv[])
         printf(1, "fork failed");
         exit();
     }
-
-    
     
     exit();
 }

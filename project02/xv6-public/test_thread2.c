@@ -76,7 +76,6 @@ char *testname[NTEST] = {
   "sleeptest",
   "stridetest",
 };
-
 int
 main(int argc, char *argv[])
 {
@@ -119,7 +118,10 @@ main(int argc, char *argv[])
     printf(1,"%d. %s finish\n", i, testname[i]);
     sleep(100);
   }
+  
+  printf(1,"finish\n");
   exit();
+  printf(1,"finish?\n");
 }
 
 // ============================================================================
@@ -611,7 +613,8 @@ pipetest(void)
 void*
 sleepthreadmain(void *arg)
 {
-  sleep(1000000);
+  sleep(1000);
+  printf(1, "sleep end!\n");
   thread_exit(0);
 
   return 0;
@@ -620,6 +623,7 @@ sleepthreadmain(void *arg)
 int
 sleeptest(void)
 {
+  void *retval;
   thread_t threads[NUM_THREAD];
   int i;
 
@@ -630,6 +634,13 @@ sleeptest(void)
     }
   }
   sleep(10);
+  for (i = 0; i < NUM_THREAD; i++){
+    if (thread_join(threads[i], &retval) != 0){
+      printf(1, "panic at thread_join\n");
+      return -1;
+    }
+  }
+  // exit();
   return 0;
 }
 
@@ -638,7 +649,7 @@ sleeptest(void)
 void*
 stridethreadmain(void *arg)
 {
-  int *flag = (int*)arg;
+  volatile int *flag = (int*)arg;
   int t;
   while(*flag){
     while(*flag == 1){
@@ -666,7 +677,9 @@ stridetest(void)
     printf(1, "panic at fork in forktest\n");
     exit();
   } else if (pid == 0){
+    // printf(1, "child forked\n");
     set_cpu_share(2);
+    // printf(1, "%d\n", getlev());
   } else{
     set_cpu_share(10);
   }
@@ -677,6 +690,9 @@ stridetest(void)
       return -1;
     }
   }
+  // if (pid == 0){
+  //   printf(1, "child threads created\n");
+  // }
   flag = 1;
   sleep(500);
   flag = 0;

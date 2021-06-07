@@ -88,6 +88,8 @@ void            initlog(int dev);
 void            log_write(struct buf*);
 void            begin_op();
 void            end_op();
+int             get_log_num();
+void            recommit();
 
 // mp.c
 extern int      ismp;
@@ -132,6 +134,7 @@ int             getlev(int);
 int             thread_create(thread_t*, void* (*start_routine)(void *), void*);           
 void            thread_exit(void*);
 int             thread_join(thread_t, void**);
+
 
 //priority_queue
 int						queue_push(struct q_header*, struct q_node*);
