@@ -62,8 +62,6 @@ static struct buf*
 bget(uint dev, uint blockno)
 {
   struct buf *b;
-  int looped = 0;
-
   acquire(&bcache.lock);
 
   // Is the block already cached?
@@ -76,26 +74,29 @@ bget(uint dev, uint blockno)
     }
   }
 
-  // Not cached; recycle an unused buffer.
-  // Even if refcnt==0, B_DIRTY indicates a buffer is in use
-  // because log.c has modified it but not yet committed it.
-  while(!looped){
-    for(b = bcache.head.prev; b != &bcache.head; b = b->prev){
-      if(b->refcnt == 0 && (b->flags & B_DIRTY) == 0) {
-        b->dev = dev;
-        b->blockno = blockno;
-        b->flags = 0;
-        b->refcnt = 1;
-        release(&bcache.lock);
-        acquiresleep(&b->lock);
-        return b;
-      }
+loop:
+    // Not cached; recycle an unused buffer.
+    // Even if refcnt==0, B_DIRTY indicates a buffer is in use
+    // because log.c has modified it but not yet committed it.
+  for(b = bcache.head.prev; b != &bcache.head; b = b->prev){
+    if(b->refcnt == 0 && (b->flags & B_DIRTY) == 0) 
+    {
+      b->dev = dev;
+      b->blockno = blockno;
+      b->flags = 0;
+      b->refcnt = 1;
+      release(&bcache.lock);
+      acquiresleep(&b->lock);
+      return b;
+    } 
+    else if(b->refcnt == 0 && (b->flags & B_DIRTY) != 0) 
+    {
+      // sync to check if there were buf that refcnt == 0 but B_DIRTY
+      sync();
+      goto loop;
     }
-    release(&bcache.lock);
-    recommit();
-    acquire(&bcache.lock);
-    looped = 1;
   }
+  
   panic("bget: no buffers");
 }
 

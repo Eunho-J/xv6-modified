@@ -24,9 +24,6 @@ main(int argc, char *argv[])
     /* Create a pipe. */
     pipe(fds);
     printf(1, "%d\n", get_log_num());
-    // sync();
-    // printf(1, "%d\n", get_log_num());
-
 
     pid = fork();
     if (pid > 0) {
@@ -39,6 +36,7 @@ main(int argc, char *argv[])
         	write(fds[1], &str[i], SIZE_MSG);
         	sleep(PERIOD);
         }
+
 
         /* Close the writer's fd */
         close(fds[1]);
@@ -62,19 +60,18 @@ main(int argc, char *argv[])
         	printf(1, "%s\n", buf);
         }
 
-
         printf(1, "%d\n", get_log_num());
-        /* Close the reader's fd */
-        close(fds[0]);
         sync();
         printf(1, "%d\n", get_log_num());
+
+
+        /* Close the reader's fd */
+        close(fds[0]);
 
     } else {
         printf(1, "fork failed");
         exit();
     }
-
-    
     
     exit();
 }
