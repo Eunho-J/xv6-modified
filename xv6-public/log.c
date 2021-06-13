@@ -282,6 +282,31 @@ log_write(struct buf *b)
 }
 
 int 
+sync(void)
+{
+  acquire(&log.lock);
+  if(log.committing){ //if already committing, wait for commit ends and return.
+    sleep(&log, &log.lock);
+    release(&log.lock);
+    return 0;
+  }
+  while(log.outstanding){ //if transaction running, sleep for it ends.
+    sleep(&log, &log.lock);
+  }
+  log.committing = 1;
+  release(&log.lock);
+
+  commit();
+  
+  acquire(&log.lock);
+  log.committing = 0;
+  log.lh.prevlogn = 0;
+  wakeup(&log);
+  release(&log.lock);
+  return 0;
+}
+
+int 
 get_log_num(void)
 {
   return log.lh.n;

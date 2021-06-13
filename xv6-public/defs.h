@@ -35,6 +35,9 @@ void            fileinit(void);
 int             fileread(struct file*, char*, int n);
 int             filestat(struct file*, struct stat*);
 int             filewrite(struct file*, char*, int n);
+int             pfileread(struct file*, char*, int n, int off);
+int             pfilewrite(struct file*, char*, int n, int off);
+
 
 // fs.c
 void            readsb(int dev, struct superblock *sb);
@@ -88,6 +91,7 @@ void            initlog(int dev);
 void            log_write(struct buf*);
 void            begin_op();
 void            end_op();
+int             sync();
 int             get_log_num();
 
 // mp.c

@@ -34,6 +34,8 @@ int thread_join(thread_t, void**);
 int gettid(void);
 int sync(void);
 int get_log_num(void);
+int pread(int, char*, int, int);
+int pwrite(int, char*, int, int);
 
 
 // ulib.c

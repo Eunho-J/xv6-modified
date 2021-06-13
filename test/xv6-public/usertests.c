@@ -203,6 +203,9 @@ writetest1(void)
       printf(stdout, "error: write big file failed\n", i);
       exit();
     }
+    if(i % 10000 == 0){
+      printf(stdout, "write big file %d\n", i);
+    }
   }
 
   close(fd);
@@ -227,9 +230,11 @@ writetest1(void)
       exit();
     }
     if(((int*)buf)[0] != n){
-      printf(stdout, "read content of block %d is %d\n",
-             n, ((int*)buf)[0]);
+      printf(stdout, "read content of block %d is %d\n", n, ((int*)buf)[0]);
       exit();
+    }
+    if(n % 10000 == 0){
+      printf(stdout, "read content of block %d is %d\n", n, ((int*)buf)[0]);
     }
     n++;
   }
