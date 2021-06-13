@@ -892,6 +892,7 @@ kill(int pid)
       {
         p->nrt++;
         p->t_node->thread->tstate = RUNNABLE;
+        p->state = RUNNABLE;
       }
       release(&ptable.lock);
       return 0;

@@ -446,8 +446,7 @@ sys_pipe(void)
 int
 sys_sync(void)
 {
-  sync();
-  return 0;
+  return sync();
 }
 
 int

@@ -37,7 +37,6 @@ main(int argc, char *argv[])
         	sleep(PERIOD);
         }
 
-
         /* Close the writer's fd */
         close(fds[1]);
 
@@ -59,11 +58,6 @@ main(int argc, char *argv[])
         	/* Print received message */
         	printf(1, "%s\n", buf);
         }
-
-        printf(1, "%d\n", get_log_num());
-        sync();
-        printf(1, "%d\n", get_log_num());
-
 
         /* Close the reader's fd */
         close(fds[0]);

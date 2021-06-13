@@ -33,8 +33,10 @@
 // and to keep track in memory of logged block# before commit.
 struct logheader {
   int n;
+  int prevlogn;
   int block[LOGSIZE];
 };
+
 
 struct log {
   struct spinlock lock;
@@ -112,6 +114,52 @@ write_head(void)
   brelse(buf);
 }
 
+// Copy modified blocks from cache to log.
+static void
+write_log(void)
+{
+  int tail;
+  for (tail = 0; tail < log.lh.n; tail++) {
+    struct buf *to = bread(log.dev, log.start+tail+1); // log block
+    struct buf *from = bread(log.dev, log.lh.block[tail]); // cache block
+    memmove(to->data, from->data, BSIZE);
+    bwrite(to);  // write the log
+    brelse(from);
+    brelse(to);
+  }
+}
+
+
+static void
+logging_write_head(void)
+{
+  struct buf *buf = bread(log.dev, log.start);
+  struct logheader *hb = (struct logheader *) (buf->data);
+  int i;
+  hb->n = log.lh.n;
+  for (i = log.lh.prevlogn; i < log.lh.n; i++) {
+    hb->block[i] = log.lh.block[i];
+  }
+  bwrite(buf);
+  brelse(buf);
+}
+
+// Copy modified blocks from cache to log.
+static void
+logging_write_log(void)
+{
+  int tail;
+  for (tail = log.lh.prevlogn; tail < log.lh.n; tail++) {
+    struct buf *to = bread(log.dev, log.start+tail+1); // log block
+    struct buf *from = bread(log.dev, log.lh.block[tail]); // cache block
+    memmove(to->data, from->data, BSIZE);
+    bwrite(to);  // write the log
+    brelse(from);
+    brelse(to);
+  }
+}
+
+
 static void
 recover_from_log(void)
 {
@@ -145,47 +193,48 @@ begin_op(void)
 void
 end_op(void)
 {
-  // int do_commit = 0;
+  int do_commit = 0;
+  int do_logging = 0;
 
   acquire(&log.lock);
   log.outstanding -= 1;
   if(log.committing)
     panic("log.committing");
-  // if(log.outstanding == 0){
-  //   do_commit = 1;
-  //   log.committing = 1;
-  // } else {
+  if(log.outstanding == 0){
+    if(log.lh.n + MAXOPBLOCKS > LOGSIZE)
+      do_commit = 1;
+    else
+      do_logging = 1;
+    log.committing = 1;
+  } else {
     // begin_op() may be waiting for log space,
     // and decrementing log.outstanding has decreased
     // the amount of reserved space.
-  wakeup(&log);
-  // }
+    wakeup(&log);
+  }
   release(&log.lock);
 
-  // if(do_commit){
-  //   // call commit w/o holding locks, since not allowed
-  //   // to sleep with locks.
-  //   commit();
-  //   acquire(&log.lock);
-  //   log.committing = 0;
-  //   wakeup(&log);
-  //   release(&log.lock);
-  // }
-}
+  if(do_logging){
+    if(log.lh.n > log.lh.prevlogn){
+      logging_write_log();
+      logging_write_head();
+    }
+    acquire(&log.lock);
+    log.lh.prevlogn = log.lh.n;
+    log.committing = 0;
+    wakeup(&log);
+    release(&log.lock);
+  }
 
-// Copy modified blocks from cache to log.
-static void
-write_log(void)
-{
-  int tail;
-
-  for (tail = 0; tail < log.lh.n; tail++) {
-    struct buf *to = bread(log.dev, log.start+tail+1); // log block
-    struct buf *from = bread(log.dev, log.lh.block[tail]); // cache block
-    memmove(to->data, from->data, BSIZE);
-    bwrite(to);  // write the log
-    brelse(from);
-    brelse(to);
+  if(do_commit){
+    // call commit w/o holding locks, since not allowed
+    // to sleep with locks.
+    commit();
+    acquire(&log.lock);
+    log.committing = 0;
+    log.lh.prevlogn = 0;
+    wakeup(&log);
+    release(&log.lock);
   }
 }
 
@@ -215,30 +264,12 @@ log_write(struct buf *b)
 {
   int i;
 
-  acquire(&log.lock);
-  while (log.committing)
-  {
-    sleep(&log, &log.lock);
-  }
-  // release(&log.lock);
-  
-
-  if (log.lh.n >= LOGSIZE || log.lh.n >= log.size - 1) {
-    // if log is full -> need sync before log_write
-    log.committing = 1;
-    release(&log.lock);
-
-    commit();
-
-    acquire(&log.lock);
-    log.committing = 0;
-    wakeup(&log);
-    // panic("too big a transaction");
-  }
+  if (log.lh.n >= LOGSIZE || log.lh.n >= log.size - 1)
+    panic("too big a transaction");
   if (log.outstanding < 1)
     panic("log_write outside of trans");
 
-  // acquire(&log.lock);
+  acquire(&log.lock);
   for (i = 0; i < log.lh.n; i++) {
     if (log.lh.block[i] == b->blockno)   // log absorbtion
       break;
@@ -250,29 +281,33 @@ log_write(struct buf *b)
   release(&log.lock);
 }
 
-
 int 
-get_log_num(void)
-{
-  return log.lh.n;
-}
-
-void
 sync(void)
 {
   acquire(&log.lock);
-  while (log.committing)
-  {
+  if(log.committing){ //if already committing, wait for commit ends and return.
+    sleep(&log, &log.lock);
+    release(&log.lock);
+    return 0;
+  }
+  while(log.outstanding){ //if transaction running, sleep for it ends.
     sleep(&log, &log.lock);
   }
   log.committing = 1;
   release(&log.lock);
 
   commit();
-
+  
   acquire(&log.lock);
   log.committing = 0;
+  log.lh.prevlogn = 0;
   wakeup(&log);
   release(&log.lock);
+  return 0;
 }
 
+int 
+get_log_num(void)
+{
+  return log.lh.n;
+}
