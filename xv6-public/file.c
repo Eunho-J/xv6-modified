@@ -76,6 +76,7 @@ fileclose(struct file *f)
     begin_op();
     iput(ff.ip);
     end_op();
+	sync();
   }
 }
 
