@@ -371,6 +371,7 @@ exit(void)
   begin_op();
   iput(curproc->cwd);
   end_op();
+  sync();
   curproc->cwd = 0;
 
   acquire(&ptable.lock);
