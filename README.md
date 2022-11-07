@@ -1,2 +1,2 @@
 # Operating System
-2017030246 정은호
+See [Wiki](https://github.com/Eunho-J/xv6-modified/wiki) for details.
