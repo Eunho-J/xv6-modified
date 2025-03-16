@@ -6,7 +6,7 @@ LWP의 scheduling 방식은 Process가 scheduling 되었을 때 그 time quantum
 
 다만 Thread간의 RR Scheduling을 위해, `trap()`에서 timer interrupt 발생시 `tyield()`를 호출하여 Thread Switching이 발생하도록 하였다. 실행된 thread는 `tsched()`에 의해 다시 inqueue되므로 `sleep`을 제외하면 균등하게 Round Robin 방식으로 차례가 바뀌게 된다.
 
-![](./res/scheduling.jpg)
+![](https://github.com/Eunho-J/xv6-modified/wiki/project02/02/res/scheduling.jpg)
 
 
 

@@ -49,12 +49,12 @@ sleeptest(void)
 
 #### Scheduler Optimization으로 인한 스케쥴링 변화에 대한 분석
 
-![](./02/res/newsched.jpg)
+![](https://github.com/Eunho-J/xv6-modified/wiki/project02/02/res/newsched.jpg)
 
 한번의 차례당 주어지는 tick, 즉 time quantum이 5배로 길어진데 비해 `priority_boost()`의 호출 주기는 2배로 늘어졌기 때문에, MLFQ에서 level 2까지 내려가는 경우가 확연히 줄어든 것을 알 수 있다. 사진의 testcase에서는 아예 level 2로 내려가지 않는 경우도 발생함을 보여준다.
 
 *아래는 `priority_boost()`의 호출 주기를 **500 tick**으로 설정하였을 때의 결과이다. *
 
-![](./02/res/newsched500.jpg)
+![](https://github.com/Eunho-J/xv6-modified/wiki/project02/02/res/newsched500.jpg)
 
 다만 `priority_boost()`의 너무 넓은 주기는 starvation을 초래할 수 있기 때문에, 200 ticks로 설정하였다.

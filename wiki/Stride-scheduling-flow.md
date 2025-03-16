@@ -3,7 +3,7 @@
 ### remaining tickets & stride concepts
 
 - for user request of CPU share, system allocates requested amount of tickets from `int shareleft` to `proc->share`. (if there are not enough remaining tickets, `proc->tickets = 0` and it means the process will be scheduled with MLFQ)
-- maximum value of `remaining_tickets` is 80 to assure that MLFQ owns 20 tickets, and this will assure that MLFQ owns more than 20% portion of CPU. (this will be handled in details at [Combined scheduling flow](./Flow of Combined Scheduler))![](./res/stride_alocateTickets.jpg)
+- maximum value of `remaining_tickets` is 80 to assure that MLFQ owns 20 tickets, and this will assure that MLFQ owns more than 20% portion of CPU. (this will be handled in details at [Combined scheduling flow](./Flow of Combined Scheduler))![](https://github.com/Eunho-J/xv6-modified/wiki/schedulingFlow/res/stride_alocateTickets.jpg)
 - stride is inversely proportional to owning share.
 - number of available tickets is same as `100 - shareleft`.
 - stride of process is same as `100 / proc->share`.
